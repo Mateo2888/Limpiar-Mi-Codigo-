@@ -121,3 +121,54 @@ string) en vez de usar `yargs`/`commander`. Con tres flags (`--write`, `--check`
 `--help`) una librería de parsing de argumentos no aporta nada que no sean unas
 pocas líneas de más superficie de dependencias. Si la CLI crece (subcomandos, muchas
 opciones), reconsiderar esta decisión — no antes.
+
+## 11. Empaquetado del `.vsix`: bundle con esbuild + `web-tree-sitter` vendorizado aparte
+
+Empaquetar una extensión de VS Code que vive en un monorepo npm workspaces con
+dependencias WASM tiene dos problemas reales, no cosméticos:
+
+**Problema 1 — el motor de limpieza no puede simplemente "ir sin cambios" al `.vsix`.**
+Un `.vsix` instalado no tiene el `node_modules` del monorepo disponible; los `require`
+a `@ai-code-cleaner/core`, `lang-typescript`, etc. (symlinks de npm workspaces) no
+resolverían. Solución: `esbuild` empaqueta todo el código propio (`core`, `registry`,
+`lang-typescript`, `lang-python`) en un único `dist/extension.js`, sin dependencias
+externas salvo `vscode` (provisto por el host) y `web-tree-sitter` (ver problema 2).
+
+**Problema 2 — `web-tree-sitter` no sobrevive el bundling a CJS.** Usa
+`import.meta.url` internamente (para ubicar su propio `tree-sitter.wasm` y para el
+glue code de Emscripten). Al bundlear a formato CJS, `import.meta.url` queda vacío
+(advertencia explícita de esbuild) y el `Parser.init()` de la librería falla en
+runtime. Se probó primero confiar en que esbuild inyectara un shim — no lo hace.
+**Solución:** `web-tree-sitter` se marca `external` en esbuild (nunca se bundlea) y se
+vendoriza tal cual (su carpeta real, sin tocar) dentro de `node_modules/` del paquete
+de VS Code — usa su propio build CJS (`tree-sitter.cjs`, vía `"exports"."require"` en
+su `package.json`), que sí usa `__dirname` real y no tiene el problema.
+
+Como consecuencia, los adaptadores de lenguaje (`lang-typescript`, `lang-python`)
+ahora aceptan un `wasmDir` opcional (`createTypeScriptAdapter(ext, wasmDir)`,
+`createPythonAdapter(wasmDir)`, propagado por `@ai-code-cleaner/registry`): cuando se
+pasa, las gramáticas `.wasm` se leen de esa carpeta (vendorizadas junto al bundle, ver
+`packages/vscode/scripts/prepare-runtime.mjs`) en vez de resolverse vía
+`require.resolve` del paquete npm real. La CLI y los tests no pasan `wasmDir` — siguen
+usando la resolución normal contra el `node_modules` del monorepo, sin cambios.
+También por esto, dentro de esos adaptadores el `createRequire(import.meta.url)`
+propio (usado solo en la rama sin `wasmDir`) se volvió perezoso: si se evaluara a
+nivel de módulo, rompería igual que `web-tree-sitter` al bundlear, aunque esa rama
+nunca se ejecute en el bundle de VS Code.
+
+**Problema 3 — `vsce package` arrastra el monorepo entero.** Sin `--no-dependencies`,
+`vsce` sigue los symlinks de npm workspaces (incluso sin declarar
+`@ai-code-cleaner/core`/`registry` en el `package.json` de la extensión) y termina
+incluyendo paquetes hermanos completos, fallando además con una ruta relativa inválida
+al toparse con archivos fuera de la carpeta de la extensión. `--no-dependencies` evita
+esto — pero también excluye **todo** `node_modules`, incluido el `web-tree-sitter`
+vendorizado que sí necesitamos. **Solución:** empaquetar con `--no-dependencies`
+(limpio, sin fugas) y luego inyectar `node_modules/web-tree-sitter` directamente en el
+`.vsix` con el binario `zip` (un `.vsix` es solo un `.zip`) — ver
+`packages/vscode/scripts/finalize-vsix.mjs`.
+
+Verificado de extremo a extremo (no solo compilación): el `.vsix` generado se extrajo
+en un directorio aislado (fuera del monorepo, sin ningún `node_modules` propio) y se
+activó/ejecutó con un stub mínimo del módulo `vscode`, confirmando que el parseo real
+vía WASM, la detección de ruido y la aplicación del `WorkspaceEdit` funcionan
+exactamente igual que en desarrollo.

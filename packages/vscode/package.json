@@ -2,9 +2,14 @@
   "name": "ai-code-cleaner-vscode",
   "displayName": "AI Code Cleaner",
   "description": "Elimina comentarios de ruido dejados por agentes de IA, sin tocar la lógica de tu código.",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "publisher": "ai-code-cleaner",
+  "license": "Apache-2.0",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mateo2888/Limpiar-Mi-Codigo-"
+  },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Other"],
   "main": "./dist/extension.js",
@@ -35,16 +40,17 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "compile": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "bundle": "node ./scripts/prepare-runtime.mjs && esbuild src/extension.ts --bundle --platform=node --target=node18 --format=cjs --external:vscode --external:web-tree-sitter --outfile=dist/extension.js",
+    "build": "npm run compile && npm run bundle",
+    "package": "npm run build && node ./scripts/finalize-vsix.mjs",
     "test:e2e": "npm run build && node ./dist/test/runTest.js"
-  },
-  "dependencies": {
-    "@ai-code-cleaner/core": "*",
-    "@ai-code-cleaner/registry": "*"
   },
   "devDependencies": {
     "@types/vscode": "^1.90.0",
-    "@vscode/test-electron": "^3.1.0"
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2"
   }
 }

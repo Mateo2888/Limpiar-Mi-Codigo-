@@ -28,6 +28,8 @@ export class LiveWatcher implements vscode.CodeLensProvider {
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly suggestions = new Map<string, PendingSuggestion[]>();
 
+  constructor(private readonly wasmDir: string) {}
+
   register(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       vscode.languages.registerCodeLensProvider({ pattern: '**/*' }, this),
@@ -58,7 +60,7 @@ export class LiveWatcher implements vscode.CodeLensProvider {
   private onChange(event: vscode.TextDocumentChangeEvent): void {
     if (event.contentChanges.length === 0) return;
     if (!config().get<boolean>('liveMode.enabled', true)) return;
-    if (!adapterForExtension(extensionOf(event.document.fileName))) return;
+    if (!adapterForExtension(extensionOf(event.document.fileName), this.wasmDir)) return;
 
     const key = event.document.uri.toString();
     const existing = this.timers.get(key);
@@ -74,7 +76,7 @@ export class LiveWatcher implements vscode.CodeLensProvider {
   }
 
   private async analyze(document: vscode.TextDocument): Promise<void> {
-    const adapter = adapterForExtension(extensionOf(document.fileName));
+    const adapter = adapterForExtension(extensionOf(document.fileName), this.wasmDir);
     if (!adapter) return;
 
     const key = document.uri.toString();

@@ -1,0 +1,16 @@
+src/**
+scripts/**
+tsconfig.json
+dist/test/**
+dist/**/*.map
+.vscode-test/**
+*.vsix
+.gitignore
+
+# web-tree-sitter se vendoriza tal cual (sin bundlear) en node_modules/ porque
+# usa import.meta.url internamente y no sobrevive al bundling en CJS — ver
+# scripts/prepare-runtime.mjs. Todo lo demás de node_modules/ se ignora: el
+# resto (@ai-code-cleaner/*, tree-sitter-typescript, etc.) ya está embebido en
+# dist/extension.js o solo se usa como bytes .wasm vendorizados en dist/wasm/.
+node_modules/**
+!node_modules/web-tree-sitter/**

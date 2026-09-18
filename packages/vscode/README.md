@@ -24,8 +24,35 @@ Implementado (FASE 3), comandos disponibles desde la Command Palette:
 
 1. `npm install && npm run build` en la raíz del repo.
 2. Abrir `packages/vscode` en VS Code y presionar F5 (Extension Development Host).
-3. Abrir un archivo `.ts`/`.js` con comentarios de relleno y correr desde la Command
-   Palette `AI Code Cleaner: Preview Changes` o `AI Code Cleaner: Clean Current File`.
+3. Abrir un archivo `.ts`/`.js`/`.py` con comentarios de relleno y correr desde la
+   Command Palette `AI Code Cleaner: Preview Changes` o `AI Code Cleaner: Clean Current File`.
+
+## Empaquetar un `.vsix` instalable
+
+```bash
+cd packages/vscode
+npm run package   # genera dist/ai-code-cleaner.vsix
+```
+
+Luego, en VS Code: Command Palette → `Extensions: Install from VSIX...` → seleccionar
+`packages/vscode/dist/ai-code-cleaner.vsix`.
+
+`npm run package` hace tres cosas, en orden (ver `docs/decisions.md` §11 para el porqué
+de cada una):
+1. `npm run build`: compila + empaqueta con esbuild todo el código propio
+   (`core`, `registry`, `lang-typescript`, `lang-python`) en un único `dist/extension.js`,
+   y vendoriza las gramáticas `.wasm` en `dist/wasm/` (`scripts/prepare-runtime.mjs`).
+2. `vsce package --no-dependencies`: genera el `.vsix` sin que `vsce` intente seguir los
+   symlinks del monorepo (si no, arrastra paquetes hermanos enteros y falla).
+3. `scripts/finalize-vsix.mjs`: inyecta `node_modules/web-tree-sitter` (vendorizado sin
+   bundlear, porque usa `import.meta.url` internamente) directamente en el `.vsix` con
+   el binario `zip`, ya que `--no-dependencies` también excluye eso.
+
+Verificado en esta sesión: el `.vsix` resultante se extrajo en un directorio aislado
+(sin ningún `node_modules` propio, fuera del monorepo) y se activó/ejecutó con un stub
+mínimo del módulo `vscode`, confirmando que el parseo real vía WASM, la detección de
+comentarios de ruido y la aplicación del `WorkspaceEdit` funcionan igual que en
+desarrollo — no solo que el paquete compile o que `vsce` no reviente.
 
 ## Test de integración end-to-end
 
