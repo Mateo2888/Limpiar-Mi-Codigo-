@@ -1,5 +1,13 @@
 # @ai-code-cleaner/lang-python
 
-Pendiente de implementación (después del MVP en TypeScript/JavaScript, para validar
-que la interfaz `LanguageAdapter` no quedó acoplada por accidente a JS/TS). Debe usar
-`web-tree-sitter` + gramática `tree-sitter-python`.
+Implementado. Usa `web-tree-sitter` + gramática `tree-sitter-python` (`.wasm`
+prebuilt, sin compilación nativa), igual que el adaptador de TypeScript.
+
+Confirma que la interfaz `LanguageAdapter` (`@ai-code-cleaner/core`) no quedó
+acoplada a JS/TS: en Python los docstrings son literales de string, no nodos de
+`comment`, así que no hace falta ninguna lógica adicional para dejarlos intactos —
+la única regla de exclusión que el adaptador necesita implementar es "esto es un
+nodo `comment`", igual que en JS/TS.
+
+Ver `tests/fixtures/python/*` para los 10 casos de prueba (mismos que TypeScript,
+adaptados a sintaxis Python), corridos por `tests/cleaner.test.ts`.

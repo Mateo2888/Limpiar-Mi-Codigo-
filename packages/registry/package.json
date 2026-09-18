@@ -1,5 +1,5 @@
 {
-  "name": "@ai-code-cleaner/lang-python",
+  "name": "@ai-code-cleaner/registry",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@ai-code-cleaner/core": "*",
-    "web-tree-sitter": "^0.25.0",
-    "tree-sitter-python": "^0.25.0"
+    "@ai-code-cleaner/lang-typescript": "*",
+    "@ai-code-cleaner/lang-python": "*"
   }
 }

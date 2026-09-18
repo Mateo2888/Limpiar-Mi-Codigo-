@@ -64,7 +64,39 @@ nunca reformatea el código del usuario final.
 .githooks` cubre la misma necesidad (correr lint/typecheck/test antes de commitear) sin
 añadir una dependencia de npm solo para eso.
 
-## 6. Modo automático ("live watcher") por defecto sugiere, no borra en silencio
+## 6. Heurística real de ruido: sin comparación contra la línea siguiente
+
+**Diseñado en FASE 1, cambiado durante la implementación (FASE 3):** la idea original
+era marcar como ruido un comentario cuyo contenido (quitando el verbo disparador) fuera
+"subconjunto" de los identificadores de la línea de código siguiente. En la práctica
+esto casi nunca matchea: el código suele usar identificadores en inglés
+(`amountInCents`) mientras el comentario está en español (`"Validar el monto"`), o
+viceversa. Ese chequeo producía falsos negativos sistemáticos, no falsos positivos, así
+que técnicamente era "seguro" pero inútil — no detectaba casi nada.
+
+**Regla final:** comentario de línea (`//`/`#`), de máximo 8 palabras, que contiene al
+menos una palabra de una lista corta de verbos disparadores (ES/EN: verificar, validar,
+procesar, devolver, retornar, crear, guardar, etc.) y **ninguna** palabra de una lista
+de exclusión que indique razón/decisión/limitación/workaround. Sigue siendo determinista
+y auditable (dos listas de palabras en `core/src/rules/redundancy.ts`), y sigue
+respetando "ante la duda, conservar" — un comentario que no matchea ningún disparador
+simplemente nunca se toca.
+
+**Simplificación adicional:** solo comentarios de **línea** son candidatos. Los de
+bloque (`/** */`, docstrings) siempre se conservan en v1 — evita tener que distinguir
+JSDoc/docstring de un bloque "de relleno" (caso mucho más ambiguo) hasta que haya
+evidencia real de que hace falta.
+
+## 7. `LanguageAdapter` es async
+
+Cargar una gramática de tree-sitter vía `web-tree-sitter` (`Language.load(wasmBytes)`)
+es asíncrono (lectura + instanciación del módulo WASM), aunque se cachea por gramática
+y solo ocurre una vez. Por eso `findComments`, `nextCodeNodeText` y `hasParseErrorNear`
+en `core/src/types.ts` devuelven `Promise`, y `core.clean()` es `async`. Se decidió no
+forzar una API síncrona con "warm-up" manual (se intentó y quedó frágil) — es más simple
+y más difícil de usar mal si el contrato es async desde el principio.
+
+## 8. Modo automático ("live watcher") por defecto sugiere, no borra en silencio
 
 Ver `PROGRESS.md`/`CLAUDE.md`. Decisión de UX: `aiCodeCleaner.liveMode.enabled` por
 defecto activo pero solo muestra una sugerencia (CodeLens/lightbulb) sobre el comentario
@@ -72,3 +104,20 @@ recién escrito; `aiCodeCleaner.liveMode.autoApply` (borrado inmediato sin inter
 queda apagado por defecto. Motivo: evitar sorpresas la primera vez que alguien instala la
 extensión, mientras se gana confianza en la heurística. Es reversible por configuración,
 no una limitación técnica.
+
+## 9. `packages/registry` se creó al aparecer un segundo consumidor real
+
+La lógica de "qué `LanguageAdapter` usar según la extensión del archivo" vivió
+primero solo en `packages/vscode/src/adapters.ts` (único consumidor en ese momento).
+Al implementar `packages/cli`, que necesita exactamente la misma decisión, se movió
+a un paquete nuevo (`@ai-code-cleaner/registry`) del que ambos dependen. No se creó
+antes "por si acaso" — se esperó a tener un segundo caso de uso real para no
+adivinar una abstracción que quizás no hiciera falta.
+
+## 10. CLI mínima, sin dependencias de parseo de argumentos
+
+`packages/cli/src/cli.ts` parsea `process.argv` a mano (un `for` con comparaciones de
+string) en vez de usar `yargs`/`commander`. Con tres flags (`--write`, `--check`,
+`--help`) una librería de parsing de argumentos no aporta nada que no sean unas
+pocas líneas de más superficie de dependencias. Si la CLI crece (subcomandos, muchas
+opciones), reconsiderar esta decisión — no antes.

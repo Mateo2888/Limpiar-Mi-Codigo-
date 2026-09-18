@@ -10,6 +10,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-code-cleaner/core": "*"
+    "@ai-code-cleaner/core": "*",
+    "web-tree-sitter": "^0.25.0",
+    "tree-sitter-typescript": "^0.23.2",
+    "tree-sitter-javascript": "^0.25.0"
   }
 }

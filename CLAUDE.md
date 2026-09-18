@@ -22,8 +22,15 @@ y `docs/decisions.md` para el porqué de cada decisión técnica.
 
 ## Estado actual
 
-Ver `PROGRESS.md` para el detalle fase por fase. Resumen: aún en FASE 2 (harness),
-sin motor de limpieza implementado todavía.
+Ver `PROGRESS.md` para el detalle fase por fase. Resumen: MVP completo — motor
+(`core`), adaptadores de TypeScript/JavaScript y Python, extensión de VS Code
+(los 4 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
+`Restore`, más el modo live con CodeLens) y una CLI mínima (`ai-code-cleaner`)
+ya funcionan. La CLI se probó de verdad (dry-run, `--check`, `--write` sobre un
+archivo real). La UI de la extensión de VS Code compila y tiene un test de
+integración escrito, pero no se pudo correr dentro de una sesión de Claude Code
+por restricciones de red del entorno (ver `packages/vscode/README.md`) —
+probarla en VS Code real sigue pendiente de confirmación humana.
 
 ## Arquitectura
 
@@ -33,13 +40,14 @@ packages/
   languages/
     typescript/        # Adaptador tree-sitter para JS/TS/TSX
     python/             # Adaptador tree-sitter para Python
+  registry/             # Único lugar que mapea extensión de archivo -> LanguageAdapter
   vscode/               # Extensión: comandos + modo live (watcher) + UI de diff
-  cli/                  # (fase posterior) reutiliza core + languages
+  cli/                  # CLI (ai-code-cleaner): dry-run / --write / --check
 ```
 
-Regla dura: `core` y `languages/*` **no importan `vscode`**. La extensión es solo una
-capa de UI encima del core. Esto permite reusar el mismo motor desde una futura CLI
-sin duplicar lógica.
+Regla dura: `core` y `languages/*` **no importan `vscode`**. `registry` es el único
+paquete que conoce todos los adaptadores de lenguaje a la vez; tanto `vscode` como
+`cli` dependen de `registry`, nunca duplican la lista de extensiones soportadas.
 
 ## Decisiones técnicas clave (detalle en docs/decisions.md)
 
