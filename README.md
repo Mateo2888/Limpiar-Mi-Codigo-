@@ -4,6 +4,12 @@
 
 <h1 align="center">AI Code Cleaner</h1>
 
+<p align="center">
+  <a href="https://github.com/sponsors/Mateo2888">
+    <img src="https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?logo=githubsponsors&logoColor=white" alt="Patrocina este proyecto en GitHub Sponsors">
+  </a>
+</p>
+
 Elimina los comentarios de relleno que dejan los agentes de IA (`// Verificar si el usuario existe`,
 `// Devolver la respuesta`, etc.) sin tocar la lógica, los nombres ni el estilo de tu código.
 
