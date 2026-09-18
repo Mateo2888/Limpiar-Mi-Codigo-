@@ -61,8 +61,17 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
       a sintaxis Python) pasan con la misma prueba de invariancia estructural. El test
       runner (`tests/cleaner.test.ts`) quedó parametrizado por lenguaje para no duplicar
       lógica de prueba. Total: 24 tests en verde (`npm test`).
-- [ ] Implementar modo live (watcher con debounce + CodeLens de sugerencia), detrás de
-      configuración (`aiCodeCleaner.liveMode.enabled` / `.autoApply`).
+- [x] Implementar modo live (`packages/vscode/src/liveWatcher.ts`): escucha
+      `onDidChangeTextDocument` con debounce de 600ms, corre el motor real
+      (`clean()`) sobre el documento completo, y muestra una sugerencia CodeLens
+      ("💡 Comentario redundante — Eliminar") por cada comentario que el core marcó,
+      reutilizando exactamente los mismos rangos de edición del core (no reimplementa
+      el borrado). Con `aiCodeCleaner.liveMode.autoApply` activado, aplica sin
+      preguntar; por defecto (`false`) solo sugiere. `aiCodeCleaner.liveMode.enabled`
+      (default `true`) apaga todo el watcher si se desactiva.
+- [x] `packages/vscode/src/adapters.ts` centraliza qué adaptador usar por extensión
+      (TS/JS y ahora también Python), usado tanto por los comandos manuales como por
+      el watcher — sin duplicar la lista de extensiones soportadas.
 - [ ] `Clean Selection` y `Restore` (comandos declarados en la visión original, no
       implementados todavía — no son parte del MVP mínimo).
 - [ ] Extensión VS Code aún no probada visualmente por un humano (ver nota de

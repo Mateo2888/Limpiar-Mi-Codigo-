@@ -1,24 +1,9 @@
 import { clean } from '@ai-code-cleaner/core';
-import { createTypeScriptAdapter } from '@ai-code-cleaner/lang-typescript';
 import * as vscode from 'vscode';
+import { adapterForExtension, extensionOf } from './adapters.js';
+import { LiveWatcher } from './liveWatcher.js';
 
 const PREVIEW_SCHEME = 'ai-code-cleaner-preview';
-
-const SUPPORTED_EXTENSIONS = new Set([
-  '.ts',
-  '.tsx',
-  '.mts',
-  '.cts',
-  '.js',
-  '.jsx',
-  '.mjs',
-  '.cjs',
-]);
-
-function extensionOf(fileName: string): string {
-  const dot = fileName.lastIndexOf('.');
-  return dot === -1 ? '' : fileName.slice(dot);
-}
 
 /**
  * Sirve el contenido "propuesto" (ya limpio) como un documento virtual de solo
@@ -52,6 +37,8 @@ export function activate(context: vscode.ExtensionContext): void {
       runCleaner(previewProvider, { offerApply: true }),
     ),
   );
+
+  new LiveWatcher().register(context);
 }
 
 export function deactivate(): void {}
@@ -68,15 +55,15 @@ async function runCleaner(
 
   const document = editor.document;
   const ext = extensionOf(document.fileName);
-  if (!SUPPORTED_EXTENSIONS.has(ext)) {
+  const adapter = adapterForExtension(ext);
+  if (!adapter) {
     void vscode.window.showWarningMessage(
-      `AI Code Cleaner: "${ext || document.fileName}" todavía no está soportado (por ahora solo JS/TS).`,
+      `AI Code Cleaner: "${ext || document.fileName}" todavía no está soportado (por ahora JS/TS/Python).`,
     );
     return;
   }
 
   const originalText = document.getText();
-  const adapter = createTypeScriptAdapter(ext);
   const result = await clean(originalText, adapter);
 
   if (result.abstained) {
