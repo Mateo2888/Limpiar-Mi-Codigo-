@@ -53,11 +53,20 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
       descargar el binario de VS Code); debería funcionar en una máquina normal. Sin
       esto, la UI real de la extensión no quedó verificada visualmente en esta sesión —
       solo compilación, typecheck y el motor puro contra fixtures.
-- [ ] Implementar `packages/languages/python` + sus fixtures (siguiente incremento).
+- [x] Implementar `packages/languages/python` con `web-tree-sitter` + `tree-sitter-python`
+      (`.wasm` prebuilt). Confirma que `LanguageAdapter` no quedó acoplado a JS/TS: en
+      Python los docstrings son literales de string (no nodos `comment`), así que no
+      hizo falta ninguna lógica extra para dejarlos intactos.
+- [x] 10 fixtures de `tests/fixtures/python/*` (mismos casos que TypeScript, adaptados
+      a sintaxis Python) pasan con la misma prueba de invariancia estructural. El test
+      runner (`tests/cleaner.test.ts`) quedó parametrizado por lenguaje para no duplicar
+      lógica de prueba. Total: 24 tests en verde (`npm test`).
 - [ ] Implementar modo live (watcher con debounce + CodeLens de sugerencia), detrás de
       configuración (`aiCodeCleaner.liveMode.enabled` / `.autoApply`).
 - [ ] `Clean Selection` y `Restore` (comandos declarados en la visión original, no
       implementados todavía — no son parte del MVP mínimo).
+- [ ] Extensión VS Code aún no probada visualmente por un humano (ver nota de
+      `test:e2e` arriba) — pendiente de que el usuario la pruebe con F5.
 
 ### Decisión de alcance tomada durante la implementación
 

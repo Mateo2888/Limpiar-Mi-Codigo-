@@ -2,10 +2,10 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import type { LanguageAdapter } from '../packages/core/src/index.js';
 import { clean } from '../packages/core/src/index.js';
+import { createPythonAdapter } from '../packages/languages/python/src/index.js';
 import { createTypeScriptAdapter } from '../packages/languages/typescript/src/index.js';
-
-const fixturesDir = fileURLToPath(new URL('./fixtures/typescript', import.meta.url));
 
 function listCases(dir: string): string[] {
   return readdirSync(dir).filter((name) => statSync(join(dir, name)).isDirectory());
@@ -18,7 +18,7 @@ function listCases(dir: string): string[] {
  * la transformación tocó lógica y no solo comentarios, sin importar si el texto
  * coincide por casualidad con `expected`.
  */
-async function codeSkeleton(adapter: ReturnType<typeof createTypeScriptAdapter>, source: string) {
+async function codeSkeleton(adapter: LanguageAdapter, source: string): Promise<string> {
   const comments = await adapter.findComments(source);
   let skeleton = source;
   const sorted = [...comments].sort((a, b) => b.range.startByte - a.range.startByte);
@@ -36,43 +36,55 @@ async function codeSkeleton(adapter: ReturnType<typeof createTypeScriptAdapter>,
     .trim();
 }
 
-describe('cleaner (TypeScript fixtures)', () => {
-  const adapter = createTypeScriptAdapter('.ts');
-  const cases = listCases(fixturesDir);
+function runFixtureSuite(
+  languageLabel: string,
+  fixturesSubdir: string,
+  extension: string,
+  createAdapter: () => LanguageAdapter,
+): void {
+  const fixturesDir = fileURLToPath(new URL(`./fixtures/${fixturesSubdir}`, import.meta.url));
 
-  it('found the expected fixture cases', () => {
-    expect(cases.length).toBeGreaterThanOrEqual(10);
-  });
+  describe(`cleaner (${languageLabel} fixtures)`, () => {
+    const adapter = createAdapter();
+    const cases = listCases(fixturesDir);
 
-  for (const caseName of cases) {
-    it(`${caseName}: matches expected output and preserves logic`, async () => {
-      const caseDir = join(fixturesDir, caseName);
-      const input = readFileSync(join(caseDir, 'input.ts'), 'utf8');
-      const expected = readFileSync(join(caseDir, 'expected.ts'), 'utf8');
-
-      const result = await clean(input, adapter);
-
-      expect(result.output).toBe(expected);
-
-      if (!result.abstained) {
-        const inputSkeleton = await codeSkeleton(adapter, input);
-        const outputSkeleton = await codeSkeleton(adapter, result.output);
-        expect(outputSkeleton).toBe(inputSkeleton);
-
-        const hasError = await adapter.hasParseErrorNear(result.output, {
-          startByte: 0,
-          endByte: result.output.length,
-        });
-        expect(hasError).toBe(false);
-      }
+    it('found the expected fixture cases', () => {
+      expect(cases.length).toBeGreaterThanOrEqual(10);
     });
-  }
 
-  it('abstains entirely when the input has a syntax error', async () => {
-    const caseDir = join(fixturesDir, '10-parse-error-abstain');
-    const input = readFileSync(join(caseDir, 'input.ts'), 'utf8');
-    const result = await clean(input, adapter);
-    expect(result.abstained).toBe(true);
-    expect(result.output).toBe(input);
+    for (const caseName of cases) {
+      it(`${caseName}: matches expected output and preserves logic`, async () => {
+        const caseDir = join(fixturesDir, caseName);
+        const input = readFileSync(join(caseDir, `input${extension}`), 'utf8');
+        const expected = readFileSync(join(caseDir, `expected${extension}`), 'utf8');
+
+        const result = await clean(input, adapter);
+
+        expect(result.output).toBe(expected);
+
+        if (!result.abstained) {
+          const inputSkeleton = await codeSkeleton(adapter, input);
+          const outputSkeleton = await codeSkeleton(adapter, result.output);
+          expect(outputSkeleton).toBe(inputSkeleton);
+
+          const hasError = await adapter.hasParseErrorNear(result.output, {
+            startByte: 0,
+            endByte: result.output.length,
+          });
+          expect(hasError).toBe(false);
+        }
+      });
+    }
+
+    it('abstains entirely when the input has a syntax error', async () => {
+      const caseDir = join(fixturesDir, '10-parse-error-abstain');
+      const input = readFileSync(join(caseDir, `input${extension}`), 'utf8');
+      const result = await clean(input, adapter);
+      expect(result.abstained).toBe(true);
+      expect(result.output).toBe(input);
+    });
   });
-});
+}
+
+runFixtureSuite('TypeScript', 'typescript', '.ts', () => createTypeScriptAdapter('.ts'));
+runFixtureSuite('Python', 'python', '.py', () => createPythonAdapter());

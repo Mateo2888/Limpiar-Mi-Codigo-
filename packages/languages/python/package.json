@@ -10,6 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-code-cleaner/core": "*"
+    "@ai-code-cleaner/core": "*",
+    "web-tree-sitter": "^0.25.0",
+    "tree-sitter-python": "^0.25.0"
   }
 }
