@@ -1,0 +1,13 @@
+#!/bin/sh
+# Corre antes de cada commit. Activar una vez con:
+#   git config core.hooksPath .githooks
+set -e
+
+echo "[pre-commit] biome check..."
+npx biome check .
+
+echo "[pre-commit] typecheck..."
+npm run typecheck --workspaces --if-present
+
+echo "[pre-commit] tests..."
+npm test --silent
