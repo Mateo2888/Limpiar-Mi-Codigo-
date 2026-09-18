@@ -172,3 +172,33 @@ en un directorio aislado (fuera del monorepo, sin ningún `node_modules` propio)
 activó/ejecutó con un stub mínimo del módulo `vscode`, confirmando que el parseo real
 vía WASM, la detección de ruido y la aplicación del `WorkspaceEdit` funcionan
 exactamente igual que en desarrollo.
+
+## 12. Compatibilidad con otros editores vía CLI (`--json`, `--stdin`), no plugins nativos
+
+Investigado antes de decidir: para "funcionar en cualquier editor" había dos caminos —
+escribir un plugin nativo por editor (JetBrains/IntelliJ SDK en Kotlin, plugin de
+Neovim en Lua, etc.), o exponer el motor de forma que los mecanismos genéricos de
+"formatter/herramienta externa" que esos editores YA tienen puedan invocarlo. Se
+eligió lo segundo:
+
+- **`--json`**: reporte estructurado (`status`, `noiseCount`, `applied`, `error` por
+  archivo) para que cualquier integración lea el resultado sin parsear texto humano.
+- **`--stdin` / `--stdin-filepath`**: modo formatter estándar (mismo patrón que
+  Prettier/Black/ESLint `--stdin`) — lee código de stdin, escribe el resultado en
+  stdout, nada más en stdout (diagnósticos a stderr). Esto es exactamente lo que
+  esperan `conform.nvim`/`none-ls` (Neovim), `External Tools`/`File Watchers`
+  (JetBrains), o un build system de Sublime — ya saben conectar "un binario que lee
+  stdin y escribe stdout" sin que este proyecto tenga que integrarse con la API
+  específica de cada editor.
+- Ante duda en modo `--stdin` (error de sintaxis, extensión no soportada) se devuelve
+  la entrada **sin modificar**: un formatter externo tiene que ser siempre seguro de
+  encadenar, nunca puede arriesgarse a vaciar o corromper el buffer del editor —
+  coherente con "ante la duda, conservar".
+
+**Por qué no plugins nativos (todavía):** JetBrains usa un SDK completamente distinto
+(Kotlin/Java, IntelliJ Platform) que no reutiliza nada de este código TypeScript; un
+plugin de Neovim nativo (Lua) tampoco. Ambos son proyectos aparte, no una extensión
+natural del `core` actual. La ruta CLI cubre el 90% del valor (cualquier editor con
+soporte de "formatter externo", que son casi todos) sin ese costo. Reconsiderar un
+plugin nativo solo si la fricción de configurar la integración vía CLI resulta ser
+un obstáculo real para usuarios de un editor específico.

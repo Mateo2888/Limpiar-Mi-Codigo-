@@ -113,6 +113,33 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
 - [x] `npm test` (24 tests), `typecheck`, `build`, `lint` en verde con los paquetes
       nuevos incluidos.
 
+## FASE 6 — Compatibilidad ampliada (en progreso)
+
+Punto de partida: la herramienta solo cubría un editor (VS Code) y dos lenguajes
+(TS/JS, Python). Investigación de qué hace falta para "cualquier lenguaje, cualquier
+editor" documentada en `docs/decisions.md` §12.
+
+- [x] **CLI: `--json`** — reporte estructurado por archivo (`status`, `noiseCount`,
+      `applied`, `error`) en vez de solo texto humano, para integraciones automatizadas.
+- [x] **CLI: `--stdin` / `--stdin-filepath`** — modo formatter estándar (mismo patrón
+      que Prettier/Black): lee de stdin, escribe el resultado en stdout sin nada más
+      (diagnósticos a stderr), pasa la entrada sin tocar ante cualquier duda. Permite
+      integrarlo como formatter externo en Neovim (`conform.nvim`/`none-ls`), JetBrains
+      (External Tools/File Watchers), Sublime, o cualquier editor con ese mecanismo
+      genérico — sin escribir un plugin nativo por editor. Recetas concretas en
+      `packages/cli/README.md`.
+- [x] Probado manualmente de verdad (no solo compilación): `--json` con archivo
+      soportado + no soportado (status y exit code correctos), `--check --json`,
+      `--stdin` con TS y Python reales (stdout coincide byte a byte con lo esperado,
+      stderr queda vacío en el camino feliz), y passthrough sin tocar ante un archivo
+      con error de sintaxis.
+- [ ] Agregar más lenguajes (candidatos por demanda real en código generado por IA:
+      Go, Java, C#) siguiendo el patrón ya validado de `lang-typescript`/`lang-python`
+      (mismo `LanguageAdapter`, mismo `wasmDir` para empaquetado).
+- [ ] Plugin nativo de JetBrains/Neovim: evaluado y pospuesto — ver justificación en
+      `docs/decisions.md` §12 (SDK completamente distinto, no reutiliza este código;
+      la ruta CLI ya cubre la mayoría de editores).
+
 ### Decisión de alcance tomada durante la implementación
 
 La regla v1 (`core/src/rules/redundancy.ts`) **no compara el comentario contra los

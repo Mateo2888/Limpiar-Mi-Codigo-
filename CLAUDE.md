@@ -25,15 +25,21 @@ y `docs/decisions.md` para el porqué de cada decisión técnica.
 Ver `PROGRESS.md` para el detalle fase por fase. Resumen: MVP completo — motor
 (`core`), adaptadores de TypeScript/JavaScript y Python, extensión de VS Code
 (los 4 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
-`Restore`, más el modo live con CodeLens) y una CLI mínima (`ai-code-cleaner`)
-ya funcionan. La CLI se probó de verdad (dry-run, `--check`, `--write` sobre un
-archivo real). La extensión ya se empaqueta en un `.vsix` real (`npm run package`
-en `packages/vscode`) y se verificó de extremo a extremo extrayéndolo en un
+`Restore`, más el modo live con CodeLens) y una CLI (`ai-code-cleaner`) ya
+funcionan. La extensión ya se empaqueta en un `.vsix` real (`npm run package` en
+`packages/vscode`) y se verificó de extremo a extremo extrayéndolo en un
 directorio aislado del monorepo con un stub de `vscode` — pero **la UI real dentro
 de un VS Code de verdad** (F5, o instalando el `.vsix`) sigue sin confirmación
 humana, porque un test con `@vscode/test-electron` no se pudo correr dentro de una
 sesión de Claude Code por restricciones de red del entorno (ver
 `packages/vscode/README.md`).
+
+**FASE 6 en progreso** (ampliar compatibilidad más allá de VS Code/TS/Python, ver
+`docs/decisions.md` §12): la CLI ahora tiene `--json` (reporte estructurado) y
+`--stdin`/`--stdin-filepath` (modo formatter estándar tipo Prettier/Black), para
+conectarla como herramienta externa desde Neovim, JetBrains, Sublime, etc. sin
+escribir un plugin nativo por editor — ver `packages/cli/README.md` para recetas.
+Pendiente: agregar más lenguajes (Go/Java/C# son los candidatos).
 
 ## Arquitectura
 
