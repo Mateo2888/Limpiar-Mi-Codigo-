@@ -1,4 +1,8 @@
-# AI Code Cleaner
+<p align="center">
+  <img src="packages/vscode/icon.png" width="120" alt="Ícono de AI Code Cleaner">
+</p>
+
+<h1 align="center">AI Code Cleaner</h1>
 
 Elimina los comentarios de relleno que dejan los agentes de IA (`// Verificar si el usuario existe`,
 `// Devolver la respuesta`, etc.) sin tocar la lógica, los nombres ni el estilo de tu código.
@@ -120,4 +124,17 @@ Ver `CLAUDE.md` para arquitectura, decisiones y comandos de verificación.
 
 ## Licencia
 
-Apache-2.0 (ver `LICENSE`).
+**Apache License 2.0** — de código abierto y gratuita, incluso para uso comercial.
+En corto, te permite:
+
+- Usar, copiar, modificar y distribuir este código libremente.
+- Usarlo en proyectos privados o comerciales, sin pagar nada.
+- Modificarlo y crear tu propia versión, siempre que mantengas el aviso de
+  copyright y de licencia original.
+
+A cambio, el software se ofrece **"tal cual"**, sin garantías — y si contribuyes
+código a este repositorio, lo haces bajo los mismos términos.
+
+El texto legal completo y oficial está en inglés en el archivo [`LICENSE`](LICENSE)
+(las traducciones de licencias no tienen validez legal, por eso el archivo en sí
+no se traduce; este resumen es solo para orientarte).
