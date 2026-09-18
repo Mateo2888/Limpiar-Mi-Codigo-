@@ -29,17 +29,41 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
 - **No hay motor de limpieza implementado todavía** — los scripts `npm test` / `npm run
   typecheck` fallarán hasta la FASE 3 porque no existe código en `packages/core`.
 
-## FASE 3 — MVP (pendiente)
+## FASE 3 — MVP (en progreso)
 
-- [ ] Implementar `packages/languages/typescript` (adapter tree-sitter, detectar nodos
-      de comentario, saber qué nodo sigue a cada uno, saber si un rango está dentro de string).
-- [ ] Implementar `packages/core` (reglas de detección, motor de diff por rangos).
-- [ ] Hacer pasar todos los fixtures de `tests/fixtures/typescript/*`.
-- [ ] Implementar `packages/languages/python` + sus fixtures.
+- [x] Implementar `packages/core`: heurística de ruido (`rules/redundancy.ts`), motor
+      de diff por rangos de bytes (`diffEngine.ts`) y orquestador (`cleaner.ts`).
+- [x] Implementar `packages/languages/typescript` con `web-tree-sitter` +
+      `tree-sitter-typescript`/`tree-sitter-javascript` (gramáticas `.wasm`, sin
+      compilación nativa). Soporta `.ts/.tsx/.js/.jsx` según extensión.
+- [x] Los 10 fixtures de `tests/fixtures/typescript/*` pasan, incluida la prueba de
+      invariancia estructural (comparar árboles sin nodos de comentario) y la
+      verificación de que el resultado sigue siendo sintácticamente válido.
+- [x] `npm test`, `npm run typecheck`, `npm run build`, `npm run lint` en verde.
+- [ ] Implementar `packages/languages/python` + sus fixtures (siguiente incremento).
 - [ ] Implementar `packages/vscode`: comando `Clean Current File` + `Preview Changes` con
       diff nativo de VS Code y aplicar/rechazar vía `WorkspaceEdit`.
 - [ ] Implementar modo live (watcher con debounce + CodeLens de sugerencia), detrás de
       configuración (`aiCodeCleaner.liveMode.enabled` / `.autoApply`).
+
+### Decisión de alcance tomada durante la implementación
+
+La regla v1 (`core/src/rules/redundancy.ts`) **no compara el comentario contra los
+identificadores de la línea siguiente**, a diferencia de lo esbozado en FASE 1. En la
+práctica el código suele estar en inglés y el comentario en español (o al revés), así
+que un chequeo de "subconjunto de tokens" fallaba constantemente (falsos negativos).
+La regla real es: comentario de línea corto (≤8 palabras) que contiene una palabra
+disparadora conocida (verbo imperativo típico de agente de IA, ES/EN) y ninguna palabra
+de exclusión (razón/decisión/limitación/workaround/etc.). Ver `docs/decisions.md`.
+
+También se decidió que **solo los comentarios de línea (`//`, `#`) son candidatos** a
+la regla de ruido; los de bloque (`/** */`, `/* */`, docstrings) se preservan siempre
+en v1 — simplifica el MVP y es la opción más conservadora.
+
+El `LanguageAdapter` (`core/src/types.ts`) terminó siendo **async**: cargar la
+gramática WASM de tree-sitter es asíncrono (una sola vez, cacheado), así que
+`findComments`/`nextCodeNodeText`/`hasParseErrorNear` devuelven `Promise`. `core/clean()`
+también es async por transitividad.
 
 ## FASE 4 — Validación (pendiente)
 

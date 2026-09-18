@@ -22,8 +22,9 @@ y `docs/decisions.md` para el porqué de cada decisión técnica.
 
 ## Estado actual
 
-Ver `PROGRESS.md` para el detalle fase por fase. Resumen: aún en FASE 2 (harness),
-sin motor de limpieza implementado todavía.
+Ver `PROGRESS.md` para el detalle fase por fase. Resumen: FASE 3 en progreso — el
+motor (`core`) y el adaptador de TypeScript/JavaScript ya funcionan y pasan los 10
+fixtures; falta el adaptador de Python y la extensión de VS Code (comandos + modo live).
 
 ## Arquitectura
 

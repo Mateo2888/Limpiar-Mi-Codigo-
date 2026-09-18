@@ -10,7 +10,10 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      { "command": "aiCodeCleaner.cleanCurrentFile", "title": "AI Code Cleaner: Clean Current File" },
+      {
+        "command": "aiCodeCleaner.cleanCurrentFile",
+        "title": "AI Code Cleaner: Clean Current File"
+      },
       { "command": "aiCodeCleaner.previewChanges", "title": "AI Code Cleaner: Preview Changes" }
     ],
     "configuration": {

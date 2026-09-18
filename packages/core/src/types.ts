@@ -20,14 +20,18 @@ export interface LanguageAdapter {
   readonly id: string;
   readonly extensions: string[];
 
-  /** Devuelve todos los nodos de comentario del árbol, en orden. */
-  findComments(sourceText: string): CommentNode[];
+  /**
+   * Devuelve todos los nodos de comentario del árbol, en orden.
+   * Async porque cargar la gramática (WASM) es asíncrono; una vez cargada,
+   * el propio parseo es rápido y se cachea por instancia de adapter.
+   */
+  findComments(sourceText: string): Promise<CommentNode[]>;
 
   /** Nodo de código no-comentario inmediatamente siguiente a un comentario, o null. */
-  nextCodeNodeText(sourceText: string, comment: CommentNode): string | null;
+  nextCodeNodeText(sourceText: string, comment: CommentNode): Promise<string | null>;
 
   /** true si el árbol tiene errores de parseo en la región dada (abstenerse). */
-  hasParseErrorNear(sourceText: string, range: SourceRange): boolean;
+  hasParseErrorNear(sourceText: string, range: SourceRange): Promise<boolean>;
 }
 
 export interface Edit {
