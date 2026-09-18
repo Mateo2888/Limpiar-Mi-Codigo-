@@ -1,7 +1,9 @@
 /**
  * Regla v1 de detección de "ruido de IA": comentarios de línea (`//`, `#`) cortos
- * que empiezan con un verbo imperativo típico de agente de IA y que no contienen
- * ninguna palabra que indique que el comentario aporta una razón/decisión/limitación.
+ * que contienen un verbo típico de agente de IA (en cualquier posición) y que no
+ * contienen ninguna palabra que indique que el comentario aporta una razón/
+ * decisión/limitación, ni un marcador estándar de la comunidad (TODO/FIXME/
+ * directivas de linter), que se preservan siempre sin importar su contenido.
  *
  * Deliberadamente NO se intenta comparar el comentario contra los identificadores de
  * la línea de código siguiente: el código suele estar en inglés y el comentario en
@@ -49,6 +51,31 @@ const TRIGGER_WORDS = new Set([
   'revisa',
   'chequear',
   'chequea',
+  'obtén',
+  'define',
+  'definir',
+  'formatea',
+  'formatear',
+  'calcula',
+  'calcular',
+  'filtra',
+  'filtrar',
+  'genera',
+  'generar',
+  'maneja',
+  'manejar',
+  'muestra',
+  'mostrar',
+  'imprime',
+  'imprimir',
+  'inicia',
+  'iniciar',
+  'ejecuta',
+  'ejecutar',
+  'registra',
+  'registrar',
+  'construye',
+  'construir',
   // English
   'verify',
   'verifies',
@@ -78,6 +105,40 @@ const TRIGGER_WORDS = new Set([
   'creates',
   'add',
   'adds',
+  'get',
+  'gets',
+  'set',
+  'sets',
+  'handle',
+  'handles',
+  'fetch',
+  'fetches',
+  'parse',
+  'parses',
+  'build',
+  'builds',
+  'generate',
+  'generates',
+  'calculate',
+  'calculates',
+  'format',
+  'formats',
+  'convert',
+  'converts',
+  'filter',
+  'filters',
+  'define',
+  'defines',
+  'log',
+  'logs',
+  'render',
+  'renders',
+  'run',
+  'runs',
+  'execute',
+  'executes',
+  'register',
+  'registers',
 ]);
 
 const EXCLUSION_SUBSTRINGS = [
@@ -118,6 +179,22 @@ const EXCLUSION_SUBSTRINGS = [
   'limitation',
   'decision',
   'although',
+  // Marcadores estándar de la comunidad (TODO/FIXME/etc.) y directivas de
+  // linter/type-checker: nunca son "ruido de IA" aunque su texto contenga una
+  // palabra disparadora (ej. "// TODO: validate this later" no debe borrarse
+  // solo porque "validate" está en la lista de verbos).
+  'todo',
+  'fixme',
+  'xxx',
+  'wip',
+  'deprecated',
+  'eslint-disable',
+  'ts-ignore',
+  'ts-expect-error',
+  'type: ignore',
+  'noqa',
+  'nolint',
+  'pragma',
 ];
 
 const MAX_NOISE_WORD_COUNT = 8;
