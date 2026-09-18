@@ -1,6 +1,6 @@
 # Publicar en el VS Code Marketplace
 
-Publisher ya creado: `ai-code-cleaner` (ver `packages/vscode/package.json`).
+Publisher ya creado: `MCTECH` (ver `packages/vscode/package.json`).
 Todo el resto del `package.json` (categorías, keywords, icon, license) ya está listo.
 Estos son los únicos pasos que faltan, y requieren tu login personal — no se pueden
 hacer desde una sesión de Claude Code.
@@ -17,7 +17,7 @@ hacer desde una sesión de Claude Code.
 
 ```bash
 cd packages/vscode
-npx vsce login ai-code-cleaner
+npx vsce login MCTECH
 # pega el token cuando lo pida
 ```
 

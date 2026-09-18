@@ -3,7 +3,7 @@
   "displayName": "AI Code Cleaner",
   "description": "Elimina comentarios de ruido dejados por agentes de IA, sin tocar la lógica de tu código.",
   "version": "0.1.0",
-  "publisher": "ai-code-cleaner",
+  "publisher": "MCTECH",
   "license": "Apache-2.0",
   "icon": "icon.png",
   "repository": {
