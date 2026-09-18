@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { clean } from '@ai-code-cleaner/core';
 import { adapterForExtension, extensionOf } from '@ai-code-cleaner/registry';
 import * as vscode from 'vscode';
@@ -5,6 +6,15 @@ import { clearBackup, saveBackup, takeBackup } from './backupStore.js';
 import { LiveWatcher } from './liveWatcher.js';
 
 const PREVIEW_SCHEME = 'ai-code-cleaner-preview';
+
+/**
+ * Gramáticas `.wasm` vendorizadas junto al bundle (ver
+ * `scripts/prepare-wasm.mjs`), en vez de depender del `node_modules` del
+ * monorepo — necesario para que el `.vsix` empaquetado funcione de forma
+ * autocontenida. `__dirname` es el directorio de `dist/extension.js`, tanto en
+ * desarrollo (F5) como una vez instalado desde el Marketplace.
+ */
+const WASM_DIR = join(__dirname, 'wasm');
 
 /**
  * Sirve el contenido "propuesto" (ya limpio) como un documento virtual de solo
@@ -41,7 +51,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('aiCodeCleaner.restore', () => runRestore()),
   );
 
-  new LiveWatcher().register(context);
+  new LiveWatcher(WASM_DIR).register(context);
 }
 
 export function deactivate(): void {}
@@ -53,7 +63,7 @@ function requireSupportedEditor(): { editor: vscode.TextEditor; ext: string } | 
     return null;
   }
   const ext = extensionOf(editor.document.fileName);
-  if (!adapterForExtension(ext)) {
+  if (!adapterForExtension(ext, WASM_DIR)) {
     void vscode.window.showWarningMessage(
       `AI Code Cleaner: "${ext || editor.document.fileName}" todavía no está soportado (por ahora JS/TS/Python).`,
     );
@@ -70,7 +80,7 @@ async function runCleanFile(
   if (!found) return;
   const { editor, ext } = found;
   const document = editor.document;
-  const adapter = adapterForExtension(ext);
+  const adapter = adapterForExtension(ext, WASM_DIR);
   if (!adapter) return;
 
   const originalText = document.getText();
@@ -151,7 +161,7 @@ async function runCleanSelection(): Promise<void> {
     return;
   }
 
-  const adapter = adapterForExtension(ext);
+  const adapter = adapterForExtension(ext, WASM_DIR);
   if (!adapter) return;
 
   const originalText = document.getText();

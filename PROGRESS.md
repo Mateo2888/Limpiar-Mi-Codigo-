@@ -77,6 +77,22 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
       a ese backup. Complementa el Ctrl+Z nativo, no lo reemplaza.
 - [ ] Extensión VS Code aún no probada visualmente por un humano (ver nota de
       `test:e2e` arriba) — pendiente de que el usuario la pruebe con F5.
+- [x] **Empaquetado `.vsix` funcional** (`packages/vscode/scripts/{prepare-runtime,
+      finalize-vsix}.mjs`, `npm run package`): bundle único con esbuild
+      (`core`/`registry`/`lang-typescript`/`lang-python` embebidos), `web-tree-sitter`
+      vendorizado aparte (usa `import.meta.url` internamente, no sobrevive el bundling
+      a CJS), gramáticas `.wasm` vendorizadas en `dist/wasm/`, y un paso final que
+      inyecta `node_modules/web-tree-sitter` en el `.vsix` con `zip` porque `vsce
+      package` sin `--no-dependencies` arrastra el monorepo entero por los symlinks de
+      npm workspaces (y con `--no-dependencies` descarta node_modules por completo).
+      Tres problemas reales encadenados, documentados en `docs/decisions.md` §11.
+      **Verificado de extremo a extremo**: el `.vsix` se extrajo en un directorio
+      totalmente aislado del monorepo (sin ningún `node_modules` propio) y se activó
+      con un stub mínimo de `vscode`, confirmando que el parseo WASM real, la
+      detección de ruido y el `WorkspaceEdit` funcionan igual que en desarrollo — no
+      solo que el paquete compile.
+- [x] Ícono generado (`packages/vscode/icon.png`, 128×128, vía SVG propio + `@resvg/resvg-js`
+      como herramienta de una sola vez, no dependencia permanente del repo).
 
 ## FASE 5 — CLI ✅
 

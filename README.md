@@ -48,4 +48,4 @@ Ver `CLAUDE.md` para arquitectura, decisiones y comandos de verificación.
 
 ## Licencia
 
-MIT (ver `LICENSE`).
+Apache-2.0 (ver `LICENSE`).

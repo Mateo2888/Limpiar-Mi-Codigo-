@@ -27,10 +27,13 @@ Ver `PROGRESS.md` para el detalle fase por fase. Resumen: MVP completo — motor
 (los 4 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
 `Restore`, más el modo live con CodeLens) y una CLI mínima (`ai-code-cleaner`)
 ya funcionan. La CLI se probó de verdad (dry-run, `--check`, `--write` sobre un
-archivo real). La UI de la extensión de VS Code compila y tiene un test de
-integración escrito, pero no se pudo correr dentro de una sesión de Claude Code
-por restricciones de red del entorno (ver `packages/vscode/README.md`) —
-probarla en VS Code real sigue pendiente de confirmación humana.
+archivo real). La extensión ya se empaqueta en un `.vsix` real (`npm run package`
+en `packages/vscode`) y se verificó de extremo a extremo extrayéndolo en un
+directorio aislado del monorepo con un stub de `vscode` — pero **la UI real dentro
+de un VS Code de verdad** (F5, o instalando el `.vsix`) sigue sin confirmación
+humana, porque un test con `@vscode/test-electron` no se pudo correr dentro de una
+sesión de Claude Code por restricciones de red del entorno (ver
+`packages/vscode/README.md`).
 
 ## Arquitectura
 
@@ -62,6 +65,13 @@ paquete que conoce todos los adaptadores de lenguaje a la vez; tanto `vscode` co
   reimplementa el motor en TypeScript puro sobre las mismas gramáticas tree-sitter.
 - **Biome** en vez de ESLint+Prettier para el desarrollo del propio repo (una sola
   dependencia cubre lint + format).
+- **Empaquetado del `.vsix`**: bundle con esbuild de todo el código propio, pero
+  `web-tree-sitter` se deja `external` y se vendoriza tal cual (no bundlea bien en CJS
+  por su uso interno de `import.meta.url`); `vsce package` se corre con
+  `--no-dependencies` para que no arrastre el monorepo entero por los symlinks de
+  npm workspaces, y luego se inyecta `node_modules/web-tree-sitter` en el `.vsix`
+  con `zip`. Detalle completo en `docs/decisions.md` §11 — no es opcional, sin esto
+  el `.vsix` no funciona.
 
 ## Restricciones duras
 
@@ -74,7 +84,7 @@ paquete que conoce todos los adaptadores de lenguaje a la vez; tanto `vscode` co
 4. Nunca depender de una IA/LLM externo en el motor de detección v1.
 5. Ante error de parseo o ambigüedad → abstenerse de tocar esa región.
 
-## Cómo ejecutar / verificar (una vez exista implementación)
+## Cómo ejecutar / verificar
 
 ```bash
 npm install
@@ -84,10 +94,13 @@ npm run typecheck  # tsc --noEmit en cada paquete
 npm run build      # build de todos los paquetes
 ```
 
+Para generar el `.vsix` instalable: `cd packages/vscode && npm run package`
+(detalle en `packages/vscode/README.md`).
+
 ## Cómo verificar que no se alteró la lógica
 
 Cada fixture en `tests/fixtures/<lenguaje>/<caso>/` tiene `input.*` y `expected.*`.
-El test runner (a implementar en FASE 3) debe, además de comparar texto de salida:
+El test runner (`tests/cleaner.test.ts`), además de comparar texto de salida:
 
 1. Parsear `input` y el resultado producido, quitar los nodos de comentario de ambos
    árboles, y comparar que los árboles restantes son estructuralmente idénticos

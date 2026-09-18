@@ -16,9 +16,14 @@ export function extensionOf(fileName: string): string {
  * Único lugar donde se decide qué adaptador de lenguaje usar por extensión.
  * Usado tanto por la extensión de VS Code como por la CLI, para no duplicar
  * esta lista en cada integración.
+ *
+ * `wasmDir` es opcional: solo lo pasa una integración empaquetada (el `.vsix`
+ * de VS Code) que vendorizó los `.wasm` de las gramáticas junto a su bundle;
+ * la CLI y los tests lo dejan `undefined` y usan la resolución vía node_modules
+ * del monorepo tal cual.
  */
-export function adapterForExtension(ext: string): LanguageAdapter | null {
-  if (TS_EXTENSIONS.has(ext)) return createTypeScriptAdapter(ext);
-  if (PY_EXTENSIONS.has(ext)) return createPythonAdapter();
+export function adapterForExtension(ext: string, wasmDir?: string): LanguageAdapter | null {
+  if (TS_EXTENSIONS.has(ext)) return createTypeScriptAdapter(ext, wasmDir);
+  if (PY_EXTENSIONS.has(ext)) return createPythonAdapter(wasmDir);
   return null;
 }
