@@ -30,6 +30,7 @@ sobre `input`, y:
 | `08-url-in-code` | Una URL dentro del código no se modifica |
 | `09-comment-inside-string` | Texto con forma de comentario dentro de un string no se toca |
 | `10-parse-error-abstain` | Código con error de sintaxis → el cleaner no toca nada |
+| `12-marker-preserved` | `// TODO: validate this later` y `// FIXME: check this edge case` (con verbo disparador incluido) se conservan siempre; `// Gets the settings object` sí se elimina (ver docs/decisions.md §18) |
 
 ## Casos cubiertos (Python)
 
@@ -37,7 +38,8 @@ Los mismos 10 casos, adaptados a sintaxis Python (`#` en vez de `//`, sin
 comentarios de bloque — los docstrings son literales de string, ni siquiera
 llegan a evaluarse como comentarios). `07-hash-in-string` reemplaza a
 `07-string-with-slashes` con el mismo propósito: un `#` dentro de un string no
-debe confundirse con un comentario.
+debe confundirse con un comentario. `12-marker-preserved` (mismo propósito que
+en TypeScript) también está adaptado a Python.
 
 ## Casos cubiertos (Go)
 

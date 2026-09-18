@@ -204,6 +204,21 @@ editor" documentada en `docs/decisions.md` §12.
 - [ ] Plugin nativo de JetBrains/Neovim: evaluado y pospuesto — ver justificación en
       `docs/decisions.md` §12 (SDK completamente distinto, no reutiliza este código;
       la ruta CLI ya cubre la mayoría de editores).
+- [x] **Ajuste de precisión de la heurística** (`packages/core/src/rules/redundancy.ts`),
+      motivado por investigación de comunidad (se descartaron las citas/estadísticas
+      no verificables del reporte y se actuó solo sobre lo confirmado con ejecución
+      directa): se agregaron marcadores estándar (`TODO`/`FIXME`/`XXX`/`WIP`/
+      `deprecated`/directivas de linter) a `EXCLUSION_SUBSTRINGS` — antes se borraban
+      si el texto contenía un verbo disparador, un bug real confirmado con
+      `isNoiseLineComment('// TODO: validate this later') === true`; y se amplió
+      `TRIGGER_WORDS` con verbos comunes que faltaban (`get/gets`, `set/sets`,
+      `handle/handles`, `fetch`, `parse`, `build`, `generate`, `calculate`, `format`,
+      `convert`, `filter`, `define`, `log`, `render`, `run`, `execute`, `register`, y
+      sus equivalentes en español). Nuevo fixture `12-marker-preserved` en
+      TypeScript y Python (63 → 65 tests en verde). Documentado en
+      `docs/decisions.md` §18, incluyendo lo que se evaluó y se decidió NO
+      implementar (overlap semántico código/comentario, densidad de comentarios por
+      archivo, más idiomas sin caso concreto que lo motive).
 
 ### Decisión de alcance tomada durante la implementación
 

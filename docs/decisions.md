@@ -328,3 +328,56 @@ Verificado de extremo a extremo contra el `.vsix` real empaquetado: un stub de
 ruido, uno ya limpio — confirmó que el comando detecta los 2 correctos, deja el
 tercero fuera del lote, y aplica un único `WorkspaceEdit` con el contenido esperado
 para cada archivo.
+
+## 18. Ajuste de precisión en la heurística: marcadores estándar + verbos faltantes
+
+El usuario pidió investigar en la comunidad (repos/foros) qué se podría mejorar
+para que la herramienta sea más precisa. Se lanzó un subagente de investigación de
+fondo; su reporte se trató como dato no confiable por defecto (varias citas —un
+paper de arxiv con ID específico, una URL de issue de GitHub, estadísticas de un
+blog fechado en 2026 con precisión sospechosa— tenían pinta de alucinadas y no se
+verificaron ni se usaron como base de nada). En vez de aceptar el reporte al pie
+de la letra, se usó solo como disparador para probar el comportamiento real del
+motor con casos concretos (`isNoiseLineComment` en
+`packages/core/src/rules/redundancy.ts`), y esa prueba directa sí encontró dos
+problemas genuinos:
+
+1. **Falso positivo confirmado (bug real):** `// TODO: validate this later` y
+   `// FIXME: check this` se borraban, porque `EXCLUSION_SUBSTRINGS` no tenía
+   ninguna entrada para marcadores estándar de la comunidad. Un `TODO`/`FIXME`/
+   directiva de linter (`eslint-disable`, `ts-ignore`, `ts-expect-error`, `noqa`,
+   `nolint`, `pragma`, etc.) nunca debe borrarse por su contenido — es información
+   de estado del código, no ruido paráfrasis. Se agregaron esas cadenas a
+   `EXCLUSION_SUBSTRINGS`.
+2. **Vacío de recall (no un bug, una lista incompleta):** `// Gets the user` no se
+   detectaba como ruido porque `get`/`set`/`handle`/`fetch`/`parse`/`build`/etc. no
+   estaban en `TRIGGER_WORDS`, a pesar de ser verbos tan comunes en comentarios
+   generados por IA como `verify`/`check`/`return`. Se amplió la lista con verbos
+   equivalentes en inglés y español (ver el archivo fuente para el listado
+   completo).
+
+Ambos cambios se verificaron primero con ejecución directa (`isNoiseLineComment`
+llamado a mano contra los casos concretos) antes de tocar fixtures, y luego se
+agregó el caso `12-marker-preserved` a los fixtures de TypeScript y Python (el
+único paquete que cambió fue `core`, así que alcanza con demostrarlo en dos
+lenguajes, no en los cinco) — sube de 63 a 65 tests en verde.
+
+**Deliberadamente NO se implementó** nada del resto de lo que trajo el reporte del
+subagente, en todos los casos por la misma razón: no había evidencia verificable
+de que resolviera un problema real, o entraba en conflicto directo con una
+decisión ya tomada:
+
+- **Comparación semántica comentario↔código siguiente (overlap de tokens/
+  identificadores):** ya rechazada en §6 — el comentario suele estar en español y
+  el código en inglés (o viceversa), así que un match de tokens produciría falsos
+  negativos constantes, justo lo opuesto a "más preciso".
+- **Heurística de densidad de comentarios por archivo** (marcar como sospechoso un
+  archivo con "demasiados" comentarios cortos): se descartó por ser una señal de
+  archivo completo, no de comentario individual — viola la filosofía de "ante la
+  duda, se conserva" a nivel de línea, y un archivo legítimamente bien comentado
+  (ej. código educativo) no debería activar ningún comportamiento especial.
+- **Listas de verbos disparadores en portugués/francés/alemán:** ningún caso real
+  concreto lo pedía todavía (a diferencia de TODO/FIXME y get/set, que se
+  confirmaron con ejecución directa); agregar idiomas sin un caso que lo motive es
+  extender superficie de falsos positivos/negativos a ciegas. Queda como
+  ampliación futura si aparece una necesidad concreta, no especulativa.
