@@ -1,0 +1,17 @@
+{
+  "name": "@ai-code-cleaner/lang-csharp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ai-code-cleaner/core": "*",
+    "web-tree-sitter": "^0.25.0",
+    "tree-sitter-c-sharp": "^0.23.5"
+  }
+}

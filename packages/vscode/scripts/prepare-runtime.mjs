@@ -46,6 +46,9 @@ const wasmFiles = [
   ['tree-sitter-typescript/tree-sitter-tsx.wasm', 'tree-sitter-tsx.wasm'],
   ['tree-sitter-javascript/tree-sitter-javascript.wasm', 'tree-sitter-javascript.wasm'],
   ['tree-sitter-python/tree-sitter-python.wasm', 'tree-sitter-python.wasm'],
+  ['tree-sitter-go/tree-sitter-go.wasm', 'tree-sitter-go.wasm'],
+  ['tree-sitter-java/tree-sitter-java.wasm', 'tree-sitter-java.wasm'],
+  ['tree-sitter-c-sharp/tree-sitter-c_sharp.wasm', 'tree-sitter-c_sharp.wasm'],
 ];
 
 for (const [specifier, destName] of wasmFiles) {

@@ -12,6 +12,9 @@
   "dependencies": {
     "@ai-code-cleaner/core": "*",
     "@ai-code-cleaner/lang-typescript": "*",
-    "@ai-code-cleaner/lang-python": "*"
+    "@ai-code-cleaner/lang-python": "*",
+    "@ai-code-cleaner/lang-go": "*",
+    "@ai-code-cleaner/lang-java": "*",
+    "@ai-code-cleaner/lang-csharp": "*"
   }
 }

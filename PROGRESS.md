@@ -113,6 +113,98 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
 - [x] `npm test` (24 tests), `typecheck`, `build`, `lint` en verde con los paquetes
       nuevos incluidos.
 
+## FASE 6 — Compatibilidad ampliada (en progreso)
+
+Punto de partida: la herramienta solo cubría un editor (VS Code) y dos lenguajes
+(TS/JS, Python). Investigación de qué hace falta para "cualquier lenguaje, cualquier
+editor" documentada en `docs/decisions.md` §12.
+
+- [x] **CLI: `--json`** — reporte estructurado por archivo (`status`, `noiseCount`,
+      `applied`, `error`) en vez de solo texto humano, para integraciones automatizadas.
+- [x] **CLI: `--stdin` / `--stdin-filepath`** — modo formatter estándar (mismo patrón
+      que Prettier/Black): lee de stdin, escribe el resultado en stdout sin nada más
+      (diagnósticos a stderr), pasa la entrada sin tocar ante cualquier duda. Permite
+      integrarlo como formatter externo en Neovim (`conform.nvim`/`none-ls`), JetBrains
+      (External Tools/File Watchers), Sublime, o cualquier editor con ese mecanismo
+      genérico — sin escribir un plugin nativo por editor. Recetas concretas en
+      `packages/cli/README.md`.
+- [x] Probado manualmente de verdad (no solo compilación): `--json` con archivo
+      soportado + no soportado (status y exit code correctos), `--check --json`,
+      `--stdin` con TS y Python reales (stdout coincide byte a byte con lo esperado,
+      stderr queda vacío en el camino feliz), y passthrough sin tocar ante un archivo
+      con error de sintaxis.
+- [x] **Cuarto lenguaje: Go** (`packages/languages/go`, `tree-sitter-go`, mismo patrón
+      que TS/Python). Reveló un matiz real: en Go los doc comments (godoc) son
+      comentarios de **línea** (`// FuncName hace X`), no de bloque como JSDoc en TS —
+      sin ajuste, la heurística de ruido podría borrar documentación real de una
+      función exportada. Resuelto en el propio adaptador (detecta cuando un comentario
+      de línea encadena, sin saltos en blanco, hasta un `func`/`type`/`const`/`var`/
+      `package`, y lo marca `isBlock: true` para que el core lo excluya siempre — sin
+      tocar `core`). Documentado en `docs/decisions.md` §14.
+- [x] 11 fixtures de `tests/fixtures/go/*` (los 10 casos habituales + uno nuevo,
+      `11-godoc-preserved`, que prueba explícitamente que un doc comment con verbo
+      disparador y pocas palabras sigue sin tocarse). Registrado en `@ai-code-cleaner/registry`
+      (extensión `.go`) y vendorizado su `.wasm` en el `.vsix` de VS Code.
+      Total: 37 tests en verde (`npm test`).
+- [x] Probado manualmente de verdad en los tres frentes: CLI (`--json`, `--write`,
+      `--stdin`) sobre archivos `.go` reales, y el `.vsix` empaquetado extraído en un
+      directorio aislado del monorepo, activado con un stub de `vscode`, limpiando un
+      archivo Go real de punta a punta (no solo que compile).
+- [x] Se evaluó integrar Knip (detector de código/exports sin uso) para este objetivo
+      y se descartó: resuelve un problema distinto (código muerto, no comentarios de
+      ruido), es solo JS/TS, y choca con la filosofía "no mejores mi código". Ver
+      `docs/decisions.md` §13.
+- [x] **Cuarto lenguaje: Java** (`packages/languages/java`, `tree-sitter-java`).
+      Confirmó la lección de Go: Javadoc es un comentario de **bloque** (`/** */`),
+      así que no necesitó la lógica especial de detección de cadena de comentarios
+      de Go — le basta la regla genérica del core. Reveló un matiz distinto:
+      `tree-sitter-java` usa dos tipos de nodo de comentario separados
+      (`line_comment`/`block_comment`) en vez de un único tipo `comment` como los
+      demás lenguajes — el adaptador usa `isBlock: node.type === 'block_comment'`
+      en vez del truco de texto de los otros adaptadores. Documentado en
+      `docs/decisions.md` §15.
+- [x] 11 fixtures de `tests/fixtures/java/*` (los 10 casos habituales + un
+      `11-javadoc-preserved` análogo al de Go). Registrado en el registry
+      (extensión `.java`) y vendorizado su `.wasm` en el `.vsix`. Total: 50 tests
+      en verde (`npm test`).
+- [x] Probado manualmente de verdad en los tres frentes (CLI `--json`/`--write`/
+      `--stdin`, y el `.vsix` empaquetado extraído en un directorio aislado del
+      monorepo) sobre archivos `.java` reales, igual que con Go.
+- [x] **Quinto lenguaje: C#** (`packages/languages/csharp`, `tree-sitter-c-sharp`).
+      Mismo matiz que Go, no el de Java: su doc comment idiomático (`/// <summary>`)
+      es de línea, así que reutiliza el mecanismo de cadena-hasta-declaración de
+      `lang-go` (con los tipos de declaración de C#). Detalle de empaquetado propio:
+      el paquete npm (`tree-sitter-c-sharp`) y su `.wasm`
+      (`tree-sitter-c_sharp.wasm`, con guion bajo) tienen nombres distintos.
+      Documentado en `docs/decisions.md` §16.
+- [x] 11 fixtures de `tests/fixtures/csharp/*` (los 10 habituales + un
+      `11-xmldoc-preserved`). Registrado en el registry (extensión `.cs`) y
+      vendorizado su `.wasm` en el `.vsix`. Total: 63 tests en verde (`npm test`).
+- [x] Probado manualmente de verdad en los tres frentes (CLI, `.vsix` empaquetado)
+      sobre archivos `.cs` reales, igual que con Go/Java.
+- [x] **CLI: recorrido de directorios** (`expandTargets`/`collectSupportedFiles`,
+      sin dependencia nueva): un argumento que es una carpeta se recorre
+      recursivamente buscando extensiones soportadas, saltando `node_modules`,
+      `.git`, `dist`, `build`, `target`, `bin`, `obj`, `vendor`, entornos
+      virtuales, cachés de IDE, etc. por defecto (ampliable con `--ignore
+      <nombre>`). `ai-code-cleaner .` ahora limpia un proyecto entero de una sola
+      vez. Probado de verdad con un proyecto simulado de 5 lenguajes +
+      `node_modules`/`dist` con ruido: los 5 archivos reales se limpiaron
+      correctamente y `node_modules`/`dist` quedaron intactos.
+- [x] **VS Code: comando `Clean Workspace`** — analiza todo el proyecto abierto
+      (`vscode.workspace.findFiles`, respeta `.gitignore`/exclusiones del usuario),
+      muestra un resumen (N comentarios en M archivos) y aplica todo con un único
+      `WorkspaceEdit` multi-archivo (una sola operación atómica, un solo Ctrl+Z
+      para el lote completo); revalida cada archivo contra lo analizado antes de
+      aplicar y descarta los que cambiaron mientras tanto. Este es el flujo
+      pedido explícitamente: "instalar sobre un proyecto ya avanzado y que lo
+      analice y deje limpio". Verificado de extremo a extremo contra el `.vsix`
+      real con un proyecto simulado de 3 archivos (2 con ruido, 1 limpio) en 3
+      lenguajes distintos. Documentado en `docs/decisions.md` §17.
+- [ ] Plugin nativo de JetBrains/Neovim: evaluado y pospuesto — ver justificación en
+      `docs/decisions.md` §12 (SDK completamente distinto, no reutiliza este código;
+      la ruta CLI ya cubre la mayoría de editores).
+
 ### Decisión de alcance tomada durante la implementación
 
 La regla v1 (`core/src/rules/redundancy.ts`) **no compara el comentario contra los

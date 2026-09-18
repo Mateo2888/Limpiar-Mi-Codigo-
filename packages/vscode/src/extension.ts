@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { clean } from '@ai-code-cleaner/core';
-import { adapterForExtension, extensionOf } from '@ai-code-cleaner/registry';
+import { SUPPORTED_EXTENSIONS, adapterForExtension, extensionOf } from '@ai-code-cleaner/registry';
 import * as vscode from 'vscode';
 import { clearBackup, saveBackup, takeBackup } from './backupStore.js';
 import { LiveWatcher } from './liveWatcher.js';
@@ -49,6 +49,7 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiCodeCleaner.cleanSelection', () => runCleanSelection()),
     vscode.commands.registerCommand('aiCodeCleaner.restore', () => runRestore()),
+    vscode.commands.registerCommand('aiCodeCleaner.cleanWorkspace', () => runCleanWorkspace()),
   );
 
   new LiveWatcher(WASM_DIR).register(context);
@@ -65,7 +66,7 @@ function requireSupportedEditor(): { editor: vscode.TextEditor; ext: string } | 
   const ext = extensionOf(editor.document.fileName);
   if (!adapterForExtension(ext, WASM_DIR)) {
     void vscode.window.showWarningMessage(
-      `AI Code Cleaner: "${ext || editor.document.fileName}" todavía no está soportado (por ahora JS/TS/Python).`,
+      `AI Code Cleaner: "${ext || editor.document.fileName}" todavía no está soportado (por ahora JS/TS/Python/Go/Java/C#).`,
     );
     return null;
   }
@@ -227,4 +228,135 @@ async function runRestore(): Promise<void> {
   edit.replace(document.uri, fullRange, backup);
   await vscode.workspace.applyEdit(edit);
   clearBackup(document.uri);
+}
+
+interface WorkspaceFileFinding {
+  document: vscode.TextDocument;
+  originalText: string;
+  cleanedText: string;
+  noiseCount: number;
+}
+
+/**
+ * Analiza y limpia un proyecto ya existente de una sola vez — el caso de uso
+ * de "acabo de instalar esto sobre un desarrollo avanzado hecho con IA".
+ * Usa `vscode.workspace.findFiles`, que ya respeta `.gitignore` y los
+ * `files.exclude`/`search.exclude` del usuario (no reinventa esa exclusión),
+ * y agrega `**\/node_modules/**` explícitamente por si acaso. Aplica todos los
+ * archivos con un único `WorkspaceEdit` multi-archivo (una sola operación
+ * atómica, un solo Ctrl+Z para deshacer todo el lote), tras confirmar con el
+ * usuario cuántos archivos y comentarios se detectaron — sin abrir un diff
+ * por archivo, que sería inmanejable para un proyecto grande.
+ */
+async function runCleanWorkspace(): Promise<void> {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    void vscode.window.showWarningMessage(
+      'AI Code Cleaner: no hay ninguna carpeta de proyecto abierta.',
+    );
+    return;
+  }
+
+  const extensionsGlob = SUPPORTED_EXTENSIONS.map((ext) => ext.slice(1)).join(',');
+  const uris = await vscode.workspace.findFiles(`**/*.{${extensionsGlob}}`, '**/node_modules/**');
+
+  if (uris.length === 0) {
+    void vscode.window.showInformationMessage(
+      'AI Code Cleaner: no se encontraron archivos soportados en el proyecto.',
+    );
+    return;
+  }
+
+  const findings = await vscode.window.withProgress<WorkspaceFileFinding[]>(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'AI Code Cleaner: analizando el proyecto',
+      cancellable: true,
+    },
+    async (progress, token) => {
+      const collected: WorkspaceFileFinding[] = [];
+      const increment = 100 / uris.length;
+
+      for (const uri of uris) {
+        if (token.isCancellationRequested) break;
+        progress.report({ increment, message: uri.fsPath.split(/[/\\]/).pop() });
+
+        const adapter = adapterForExtension(extensionOf(uri.fsPath), WASM_DIR);
+        if (!adapter) continue;
+
+        let document: vscode.TextDocument;
+        try {
+          document = await vscode.workspace.openTextDocument(uri);
+        } catch {
+          continue;
+        }
+        const originalText = document.getText();
+
+        const result = await clean(originalText, adapter);
+        if (!result.abstained && result.edits.length > 0) {
+          collected.push({
+            document,
+            originalText,
+            cleanedText: result.output,
+            noiseCount: result.edits.length,
+          });
+        }
+      }
+
+      return collected;
+    },
+  );
+
+  if (findings.length === 0) {
+    void vscode.window.showInformationMessage(
+      'AI Code Cleaner: no se encontraron comentarios de ruido en el proyecto.',
+    );
+    return;
+  }
+
+  const totalNoise = findings.reduce((sum, f) => sum + f.noiseCount, 0);
+  const choice = await vscode.window.showInformationMessage(
+    `Se encontraron ${totalNoise} comentario(s) de ruido en ${findings.length} archivo(s). ¿Aplicar a todo el proyecto?`,
+    'Aplicar',
+    'Descartar',
+  );
+  if (choice !== 'Aplicar') return;
+
+  // El análisis pudo tardar (proyectos grandes) y el usuario tardó en confirmar;
+  // releer cada archivo y descartar del lote cualquiera que haya cambiado desde
+  // el análisis, para nunca aplicar ediciones calculadas sobre texto viejo.
+  const staleFiles: string[] = [];
+  const edit = new vscode.WorkspaceEdit();
+  for (const finding of findings) {
+    if (finding.document.getText() !== finding.originalText) {
+      staleFiles.push(finding.document.fileName);
+      continue;
+    }
+    saveBackup(finding.document.uri, finding.originalText);
+    const fullRange = new vscode.Range(
+      finding.document.positionAt(0),
+      finding.document.positionAt(finding.originalText.length),
+    );
+    edit.replace(finding.document.uri, fullRange, finding.cleanedText);
+  }
+
+  if (staleFiles.length > 0) {
+    void vscode.window.showWarningMessage(
+      `AI Code Cleaner: ${staleFiles.length} archivo(s) cambiaron mientras se analizaba y se omitieron de este lote; vuelve a correr el comando para incluirlos.`,
+    );
+  }
+
+  const appliedCount = findings.length - staleFiles.length;
+  if (appliedCount === 0) return;
+
+  const applied = await vscode.workspace.applyEdit(edit);
+  if (applied) {
+    void vscode.window.showInformationMessage(
+      `AI Code Cleaner: aplicado a ${appliedCount} archivo(s).`,
+    );
+  } else {
+    void vscode.window.showWarningMessage(
+      'AI Code Cleaner: no se pudo aplicar la edición al proyecto; vuelve a intentarlo.',
+    );
+  }
 }

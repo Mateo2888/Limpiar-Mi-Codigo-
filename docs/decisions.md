@@ -172,3 +172,159 @@ en un directorio aislado (fuera del monorepo, sin ningún `node_modules` propio)
 activó/ejecutó con un stub mínimo del módulo `vscode`, confirmando que el parseo real
 vía WASM, la detección de ruido y la aplicación del `WorkspaceEdit` funcionan
 exactamente igual que en desarrollo.
+
+## 12. Compatibilidad con otros editores vía CLI (`--json`, `--stdin`), no plugins nativos
+
+Investigado antes de decidir: para "funcionar en cualquier editor" había dos caminos —
+escribir un plugin nativo por editor (JetBrains/IntelliJ SDK en Kotlin, plugin de
+Neovim en Lua, etc.), o exponer el motor de forma que los mecanismos genéricos de
+"formatter/herramienta externa" que esos editores YA tienen puedan invocarlo. Se
+eligió lo segundo:
+
+- **`--json`**: reporte estructurado (`status`, `noiseCount`, `applied`, `error` por
+  archivo) para que cualquier integración lea el resultado sin parsear texto humano.
+- **`--stdin` / `--stdin-filepath`**: modo formatter estándar (mismo patrón que
+  Prettier/Black/ESLint `--stdin`) — lee código de stdin, escribe el resultado en
+  stdout, nada más en stdout (diagnósticos a stderr). Esto es exactamente lo que
+  esperan `conform.nvim`/`none-ls` (Neovim), `External Tools`/`File Watchers`
+  (JetBrains), o un build system de Sublime — ya saben conectar "un binario que lee
+  stdin y escribe stdout" sin que este proyecto tenga que integrarse con la API
+  específica de cada editor.
+- Ante duda en modo `--stdin` (error de sintaxis, extensión no soportada) se devuelve
+  la entrada **sin modificar**: un formatter externo tiene que ser siempre seguro de
+  encadenar, nunca puede arriesgarse a vaciar o corromper el buffer del editor —
+  coherente con "ante la duda, conservar".
+
+**Por qué no plugins nativos (todavía):** JetBrains usa un SDK completamente distinto
+(Kotlin/Java, IntelliJ Platform) que no reutiliza nada de este código TypeScript; un
+plugin de Neovim nativo (Lua) tampoco. Ambos son proyectos aparte, no una extensión
+natural del `core` actual. La ruta CLI cubre el 90% del valor (cualquier editor con
+soporte de "formatter externo", que son casi todos) sin ese costo. Reconsiderar un
+plugin nativo solo si la fricción de configurar la integración vía CLI resulta ser
+un obstáculo real para usuarios de un editor específico.
+
+## 13. Se evaluó y descartó Knip para "más lenguajes"
+
+Se preguntó si `Knip` (ISC, licencia permisiva) podía servir para este objetivo.
+Investigado y descartado: Knip detecta **archivos, dependencias y exports sin uso**
+para que el usuario los borre — un problema de "código muerto", no de "comentarios
+de ruido de IA". Además es JS/TS únicamente (más estrecho que este proyecto, no más
+amplio) y su propósito (sugerir refactors/borrados) choca directo con la filosofía
+no negociable de este proyecto ("NO MEJORES MI CÓDIGO. SOLO QUÍTALE EL RUIDO."). No
+se integra.
+
+## 14. Tercer lenguaje: Go, mismo patrón, con un matiz real de Go resuelto en el adaptador
+
+`packages/languages/go` sigue exactamente el patrón de `lang-typescript`/`lang-python`
+(`web-tree-sitter` + `tree-sitter-go`, `.wasm` prebuilt, `wasmDir` opcional). Un
+segundo lenguaje ya había validado que `LanguageAdapter` no estaba acoplado a JS/TS;
+Go valida algo distinto: **el patrón de exclusión "los bloques siempre se preservan"
+no alcanza para todos los lenguajes.**
+
+En Go, la convención de documentación (godoc) es un comentario de **línea** (`//`)
+inmediatamente arriba de una declaración (`func`/`type`/`const`/`var`/`package`), sin
+línea en blanco entre medio — a diferencia de JSDoc en TS, que es un comentario de
+**bloque** (`/** */`) y ya queda excluido por la regla genérica. Sin ajuste, la
+heurística de ruido podría borrar la documentación de una función exportada solo
+porque empieza con un verbo disparador (ej. `// GetUser retorna el usuario...`).
+
+**Solución, sin tocar `core`:** el adaptador de Go inspecciona el árbol — si un
+comentario de línea encadena (sin saltos de línea en blanco, incluso a través de
+varias líneas `//` consecutivas) hasta una declaración de ese tipo, se marca como
+`isBlock: true` en el `CommentNode`. El core ya excluye siempre los bloques de su
+heurística de ruido, así que esto reutiliza exactamente ese mecanismo — una
+reinterpretación deliberada de `isBlock` como "esto ya está clasificado como
+documentación, no evalúes la heurística de texto", no solo "empieza con `/*`".
+Cubierto por el fixture `tests/fixtures/go/11-godoc-preserved`, que prueba
+explícitamente que un doc comment con un verbo disparador y pocas palabras sigue
+sin tocarse.
+
+**Implicación para el próximo lenguaje:** antes de agregar uno nuevo, revisar cómo
+documenta idiomáticamente ese lenguaje (¿bloque como JSDoc, o línea como godoc?) en
+vez de asumir que el patrón de TS/Python generaliza.
+
+## 15. Cuarto lenguaje: Java — mismo patrón, sin necesitar la lógica especial de Go
+
+Siguiendo la implicación del punto anterior, antes de escribir código se revisó cómo
+documenta Java: Javadoc (`/** ... */`) es un comentario de **bloque**, igual que
+JSDoc en TS — a diferencia de godoc en Go. Confirmado: Java **no** necesita la
+lógica de "detectar cadena de comentarios de línea hasta una declaración" que sí
+hizo falta en `lang-go`; le basta con la regla genérica del core ("los bloques se
+preservan siempre").
+
+Sí apareció un matiz distinto, específico de la gramática: `tree-sitter-java` no usa
+un único tipo de nodo `comment` (como JS/TS/Python/Go) — usa dos tipos separados,
+`line_comment` y `block_comment`. El adaptador de Java (`packages/languages/java`)
+detecta ambos tipos explícitamente y usa `isBlock: node.type === 'block_comment'`
+en vez del truco de texto (`text.startsWith('/*')`) que usan los demás adaptadores.
+
+Cubierto por `tests/fixtures/java/11-javadoc-preserved` (mismo propósito que el
+`11-godoc-preserved` de Go: un Javadoc con verbo disparador y pocas palabras que
+debe sobrevivir). 50 tests en verde en total. Verificado de extremo a extremo con
+CLI (`--json`/`--write`/`--stdin`) y el `.vsix` empaquetado, extraído en un
+directorio aislado y ejecutado contra un archivo `.java` real.
+
+**Implicación reforzada:** cada gramática tree-sitter puede nombrar sus nodos de
+comentario distinto — revisar el `grammar.js`/`node-types.json` del paquete real
+antes de asumir que existe un solo tipo `comment`, no solo cómo documenta el lenguaje.
+
+## 16. Quinto lenguaje: C# — mismo matiz que Go, no el de Java
+
+`tree-sitter-c-sharp` usa un único tipo de nodo `comment` (como JS/TS/Python/Go, no
+como Java). Pero su doc comment idiomático (XML doc, `/// <summary>...`) es un
+comentario de **línea** — la propia gramática ni distingue `///` de `//` como
+tokens separados, igual que en Go. `packages/languages/csharp` reutiliza el mismo
+mecanismo de `lang-go` (cadena de comentarios de línea sin salto en blanco hasta una
+declaración), con el conjunto de tipos de declaración de C# (`class_declaration`,
+`method_declaration`, `property_declaration`, `field_declaration`, etc.).
+
+Detalle de empaquetado: el paquete npm se llama `tree-sitter-c-sharp` (con guiones)
+pero el `.wasm` que publica se llama `tree-sitter-c_sharp.wasm` (con guion bajo) —
+nombres distintos, hay que resolverlos por separado en vez de derivar uno del otro
+(`packages/languages/csharp/src/index.ts`, `packages/vscode/scripts/prepare-runtime.mjs`).
+
+Cubierto por `tests/fixtures/csharp/11-xmldoc-preserved`. 63 tests en verde en
+total. Verificado de extremo a extremo (CLI + `.vsix` empaquetado y extraído en un
+directorio aislado) contra un archivo `.cs` real.
+
+Con TS/JS, Python, Go, Java y C# cubiertos, el patrón para agregar un lenguaje
+nuevo está bien establecido: (1) confirmar que el paquete npm de la gramática
+publica un `.wasm` prebuilt; (2) revisar su `grammar.js` para el/los tipo(s) de
+nodo de comentario reales; (3) revisar si el doc comment idiomático del lenguaje es
+de bloque (reutiliza la regla del core sin cambios, como Java) o de línea (necesita
+el mecanismo de cadena-hasta-declaración de `lang-go`/`lang-csharp`, con los tipos
+de declaración propios del lenguaje).
+
+## 17. La CLI recorre directorios y la extensión limpia el workspace completo
+
+Necesidad real señalada por el usuario: instalar la herramienta sobre un proyecto
+ya existente (típicamente con mucho código generado por IA) y que la analice y
+limpie de una sola vez, no archivo por archivo.
+
+**CLI:** un argumento que es un directorio ahora se recorre recursivamente
+(`expandTargets`/`collectSupportedFiles` en `packages/cli/src/cli.ts`), filtrando
+por las extensiones que el `registry` soporta y saltando una lista de carpetas
+ignoradas por defecto (`node_modules`, `.git`, `dist`, `build`, `target`, `bin`,
+`obj`, `vendor`, entornos virtuales de Python, cachés de IDE, etc.), ampliable con
+`--ignore <nombre>` repetible. Se implementó con un recorrido de directorios propio
+(sin dependencia nueva) en vez de una librería de globbing — no hacía falta
+sintaxis de glob arbitraria, solo "todo archivo soportado bajo esta carpeta".
+`ai-code-cleaner .` limpia (o reporta, con `--check`/`--json`) un proyecto entero.
+
+**Extensión de VS Code:** comando nuevo `AI Code Cleaner: Clean Workspace`. Usa
+`vscode.workspace.findFiles` (que ya respeta `.gitignore` y las exclusiones de
+búsqueda configuradas por el usuario, sin reinventar esa lógica) más una exclusión
+explícita de `node_modules`. Analiza todos los archivos encontrados con una barra
+de progreso cancelable, muestra un resumen ("N comentarios en M archivos") en vez
+de abrir un diff por archivo (inmanejable en un proyecto grande), y si el usuario
+confirma, aplica todo con un único `WorkspaceEdit` multi-archivo — una sola
+operación atómica, un solo Ctrl+Z para deshacer el lote completo. Antes de
+aplicar, vuelve a comparar cada archivo contra el texto analizado y descarta del
+lote cualquiera que haya cambiado mientras tanto (mismo principio de seguridad que
+`Clean Current File`, adaptado a múltiples archivos).
+
+Verificado de extremo a extremo contra el `.vsix` real empaquetado: un stub de
+`vscode` que simula `findFiles` devolviendo 3 archivos (TS, Python, Go) — dos con
+ruido, uno ya limpio — confirmó que el comando detecta los 2 correctos, deja el
+tercero fuera del lote, y aplica un único `WorkspaceEdit` con el contenido esperado
+para cada archivo.

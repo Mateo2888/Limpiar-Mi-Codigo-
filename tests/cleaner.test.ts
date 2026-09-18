@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { LanguageAdapter } from '../packages/core/src/index.js';
 import { clean } from '../packages/core/src/index.js';
+import { createCSharpAdapter } from '../packages/languages/csharp/src/index.js';
+import { createGoAdapter } from '../packages/languages/go/src/index.js';
+import { createJavaAdapter } from '../packages/languages/java/src/index.js';
 import { createPythonAdapter } from '../packages/languages/python/src/index.js';
 import { createTypeScriptAdapter } from '../packages/languages/typescript/src/index.js';
 
@@ -88,3 +91,6 @@ function runFixtureSuite(
 
 runFixtureSuite('TypeScript', 'typescript', '.ts', () => createTypeScriptAdapter('.ts'));
 runFixtureSuite('Python', 'python', '.py', () => createPythonAdapter());
+runFixtureSuite('Go', 'go', '.go', () => createGoAdapter());
+runFixtureSuite('Java', 'java', '.java', () => createJavaAdapter());
+runFixtureSuite('C#', 'csharp', '.cs', () => createCSharpAdapter());

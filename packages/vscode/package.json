@@ -21,7 +21,8 @@
       },
       { "command": "aiCodeCleaner.previewChanges", "title": "AI Code Cleaner: Preview Changes" },
       { "command": "aiCodeCleaner.cleanSelection", "title": "AI Code Cleaner: Clean Selection" },
-      { "command": "aiCodeCleaner.restore", "title": "AI Code Cleaner: Restore" }
+      { "command": "aiCodeCleaner.restore", "title": "AI Code Cleaner: Restore" },
+      { "command": "aiCodeCleaner.cleanWorkspace", "title": "AI Code Cleaner: Clean Workspace" }
     ],
     "configuration": {
       "title": "AI Code Cleaner",

@@ -6,13 +6,89 @@ limpieza duplicada, solo lectura/escritura de archivos y parseo de flags.
 ```bash
 node packages/cli/dist/cli.js archivo.ts                # dry-run: reporta qué se eliminaría
 node packages/cli/dist/cli.js archivo.ts otro.py --write # aplica los cambios
-node packages/cli/dist/cli.js **/*.ts --check            # exit 1 si algo cambiaría (CI)
+node packages/cli/dist/cli.js . --write                  # limpia TODO el proyecto (recursivo)
+node packages/cli/dist/cli.js . --check --json           # igual, sin tocar nada, reporte JSON (CI)
 ```
 
 Soporta las mismas extensiones que la extensión de VS Code (ver
-`@ai-code-cleaner/registry`): `.ts/.tsx/.mts/.cts/.js/.jsx/.mjs/.cjs/.py/.pyi`.
+`@ai-code-cleaner/registry`): `.ts/.tsx/.mts/.cts/.js/.jsx/.mjs/.cjs/.py/.pyi/.go/.java/.cs`.
 
-No tiene diff bonito todavía (solo cuenta cuántos comentarios detectó por archivo) —
-para inspeccionar exactamente qué se eliminaría antes de aplicar, usar `Preview
-Changes` en la extensión de VS Code, o correr sin `--write` y revisar el resultado
-con `git diff` después de un `--write` (el archivo original queda recuperable vía Git).
+## Limpiar un proyecto entero
+
+Un argumento que es una carpeta (por ejemplo `.`) se recorre recursivamente,
+procesando todos los archivos con extensión soportada. Se ignoran por defecto
+`node_modules`, `.git`, `dist`, `build`, `out`, `target`, `bin`, `obj`, `vendor`,
+entornos virtuales de Python (`.venv`/`venv`/`__pycache__`), cachés de IDE, etc.
+`--ignore <nombre>` agrega más carpetas a ignorar (repetible). Este es el flujo
+pensado para "acabo de instalar esto sobre un proyecto ya avanzado hecho con IA":
+
+```bash
+node packages/cli/dist/cli.js .                          # dry-run de todo el proyecto
+node packages/cli/dist/cli.js . --write                   # limpia todo de una vez
+node packages/cli/dist/cli.js . --ignore generated --write # + ignora una carpeta propia
+```
+
+## `--json`
+
+En vez de líneas de texto, imprime un array JSON (uno por archivo) a stdout:
+
+```json
+[
+  { "file": "a.ts", "status": "changed", "noiseCount": 2, "applied": false, "error": null }
+]
+```
+
+`status` es uno de `changed | unchanged | abstained | unsupported | error`. Pensado
+para que otras herramientas/editores lean el resultado sin parsear texto humano.
+
+## `--stdin` (modo formatter, para integrarlo en cualquier editor)
+
+```bash
+cat archivo.ts | node packages/cli/dist/cli.js --stdin --stdin-filepath archivo.ts
+```
+
+Lee el código completo de stdin y escribe el resultado limpio en stdout. **stdout
+nunca lleva nada más que el código** (ni logs ni JSON) — cualquier diagnóstico va a
+stderr — porque este modo está pensado para conectarse como "formatter externo" en
+editores que no son VS Code, exactamente como se conecta Prettier/Black en esos mismos
+flujos. `--stdin-filepath` decide el lenguaje por extensión; no necesita ser una ruta
+real. Ante duda (error de sintaxis, extensión no soportada) devuelve la entrada
+**sin tocar**, para que sea siempre seguro encadenarlo sin riesgo de vaciar el buffer.
+
+### Recetas de integración
+
+**Neovim** (con [conform.nvim](https://github.com/stevearc/conform.nvim)):
+
+```lua
+require('conform').setup({
+  formatters_by_ft = {
+    typescript = { 'ai-code-cleaner' },
+    python = { 'ai-code-cleaner' },
+  },
+  formatters = {
+    ['ai-code-cleaner'] = {
+      command = 'node',
+      args = { '/ruta/a/packages/cli/dist/cli.js', '--stdin', '--stdin-filepath', '$FILENAME' },
+      stdin = true,
+    },
+  },
+})
+```
+
+**JetBrains (IntelliJ/WebStorm/PyCharm)**: `Settings → Tools → External Tools`, nueva
+herramienta con Program `node`, Arguments
+`/ruta/a/packages/cli/dist/cli.js $FilePath$ --write`, Working directory `$ProjectFileDir$`.
+(También se puede usar `File Watchers` para correrlo automáticamente al guardar.)
+
+**Sublime Text**: un build system o un comando de `subprocess` que llame al mismo
+binario con `--stdin --stdin-filepath` y reemplace el contenido del view con la salida.
+
+**CI (cualquiera)**: `node packages/cli/dist/cli.js "**/*.ts" "**/*.py" --check --json`
+— exit code 1 si algo cambiaría, reporte JSON para publicarlo como comentario o artefacto.
+
+## Estado del diff
+
+No tiene diff bonito (solo cuenta cuántos comentarios detectó por archivo) — para
+inspeccionar exactamente qué se eliminaría antes de aplicar, usar `Preview Changes`
+en la extensión de VS Code, o correr sin `--write` y revisar el resultado con
+`git diff` después de un `--write` (el archivo original queda recuperable vía Git).
