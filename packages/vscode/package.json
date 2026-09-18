@@ -11,7 +11,21 @@
     "url": "https://github.com/Mateo2888/Limpiar-Mi-Codigo-"
   },
   "engines": { "vscode": "^1.90.0" },
-  "categories": ["Other"],
+  "categories": ["Linters", "Formatters", "Other"],
+  "keywords": [
+    "ai",
+    "comentarios",
+    "comments",
+    "clean code",
+    "linter",
+    "formatter",
+    "cleanup",
+    "typescript",
+    "python",
+    "go",
+    "java",
+    "csharp"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
