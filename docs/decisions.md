@@ -381,3 +381,26 @@ decisión ya tomada:
   confirmaron con ejecución directa); agregar idiomas sin un caso que lo motive es
   extender superficie de falsos positivos/negativos a ciegas. Queda como
   ampliación futura si aparece una necesidad concreta, no especulativa.
+
+## 19. Preparación para publicar en el VS Code Marketplace
+
+El usuario pidió publicar la extensión para que cualquiera la encuentre buscando
+"AI Code Cleaner" en VS Code, con actualizaciones automáticas al publicar nuevas
+versiones (en vez de repartir el `.vsix` a mano). Se dejó listo lo que no requiere
+una cuenta personal del usuario:
+
+- `packages/vscode/package.json` ya tenía `publisher: "ai-code-cleaner"` — se
+  mantiene ese nombre (corto, describe la herramienta). Se amplían `categories`
+  (`Linters`, `Formatters`, además de `Other`) y se agrega `keywords` (ai,
+  comentarios, clean code, linter, formatter, cleanup, + los 5 lenguajes) para
+  mejorar el descubrimiento en el Marketplace.
+
+**Pendiente, no delegable a esta sesión** (requiere una cuenta personal del
+usuario, no algo que Claude Code pueda hacer por su cuenta): crear el publisher
+`ai-code-cleaner` en https://marketplace.visualstudio.com/manage con un login de
+Microsoft/Azure DevOps propio, generar un Personal Access Token con scope
+"Marketplace: Manage", y correr `npx vsce login ai-code-cleaner` + `npx vsce
+publish` (o subir el `.vsix` generado por `npm run package` manualmente desde la
+web). Una vez publicada, `vsce publish` con un número de versión mayor en futuras
+mejoras empuja la actualización automáticamente a todos los que ya la tengan
+instalada.
