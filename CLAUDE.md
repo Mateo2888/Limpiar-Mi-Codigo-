@@ -23,8 +23,8 @@ y `docs/decisions.md` para el porqué de cada decisión técnica.
 ## Estado actual
 
 Ver `PROGRESS.md` para el detalle fase por fase. Resumen: MVP completo — motor
-(`core`), adaptadores de TypeScript/JavaScript, Python y Go, extensión de VS Code
-(los 4 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
+(`core`), adaptadores de TypeScript/JavaScript, Python, Go y Java, extensión de
+VS Code (los 4 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
 `Restore`, más el modo live con CodeLens) y una CLI (`ai-code-cleaner`) ya
 funcionan. La extensión ya se empaqueta en un `.vsix` real (`npm run package` en
 `packages/vscode`) y se verificó de extremo a extremo extrayéndolo en un
@@ -39,10 +39,11 @@ sesión de Claude Code por restricciones de red del entorno (ver
 `--stdin`/`--stdin-filepath` (modo formatter estándar tipo Prettier/Black), para
 conectarla como herramienta externa desde Neovim, JetBrains, Sublime, etc. sin
 escribir un plugin nativo por editor — ver `packages/cli/README.md` para recetas.
-Se agregó Go como tercer lenguaje (`docs/decisions.md` §14 — matiz importante:
-los doc comments de Go son de línea, no de bloque como JSDoc, y requirieron una
-regla de exclusión específica en el adaptador). Pendiente: Java/C# como siguientes
-lenguajes.
+Se agregaron Go (`docs/decisions.md` §14 — sus doc comments son de línea, no de
+bloque como JSDoc, y requirieron una regla de exclusión específica en el
+adaptador) y Java (§15 — Javadoc sí es de bloque, no necesitó esa lógica, pero su
+gramática usa dos tipos de nodo de comentario separados en vez de uno). Pendiente:
+C# como siguiente lenguaje.
 
 ## Arquitectura
 
@@ -53,6 +54,7 @@ packages/
     typescript/        # Adaptador tree-sitter para JS/TS/TSX
     python/             # Adaptador tree-sitter para Python
     go/                 # Adaptador tree-sitter para Go (protege doc comments estilo godoc)
+    java/               # Adaptador tree-sitter para Java (dos tipos de nodo: line/block_comment)
   registry/             # Único lugar que mapea extensión de archivo -> LanguageAdapter
   vscode/               # Extensión: comandos + modo live (watcher) + UI de diff
   cli/                  # CLI (ai-code-cleaner): dry-run / --write / --check

@@ -242,3 +242,28 @@ sin tocarse.
 **Implicación para el próximo lenguaje:** antes de agregar uno nuevo, revisar cómo
 documenta idiomáticamente ese lenguaje (¿bloque como JSDoc, o línea como godoc?) en
 vez de asumir que el patrón de TS/Python generaliza.
+
+## 15. Cuarto lenguaje: Java — mismo patrón, sin necesitar la lógica especial de Go
+
+Siguiendo la implicación del punto anterior, antes de escribir código se revisó cómo
+documenta Java: Javadoc (`/** ... */`) es un comentario de **bloque**, igual que
+JSDoc en TS — a diferencia de godoc en Go. Confirmado: Java **no** necesita la
+lógica de "detectar cadena de comentarios de línea hasta una declaración" que sí
+hizo falta en `lang-go`; le basta con la regla genérica del core ("los bloques se
+preservan siempre").
+
+Sí apareció un matiz distinto, específico de la gramática: `tree-sitter-java` no usa
+un único tipo de nodo `comment` (como JS/TS/Python/Go) — usa dos tipos separados,
+`line_comment` y `block_comment`. El adaptador de Java (`packages/languages/java`)
+detecta ambos tipos explícitamente y usa `isBlock: node.type === 'block_comment'`
+en vez del truco de texto (`text.startsWith('/*')`) que usan los demás adaptadores.
+
+Cubierto por `tests/fixtures/java/11-javadoc-preserved` (mismo propósito que el
+`11-godoc-preserved` de Go: un Javadoc con verbo disparador y pocas palabras que
+debe sobrevivir). 50 tests en verde en total. Verificado de extremo a extremo con
+CLI (`--json`/`--write`/`--stdin`) y el `.vsix` empaquetado, extraído en un
+directorio aislado y ejecutado contra un archivo `.java` real.
+
+**Implicación reforzada:** cada gramática tree-sitter puede nombrar sus nodos de
+comentario distinto — revisar el `grammar.js`/`node-types.json` del paquete real
+antes de asumir que existe un solo tipo `comment`, no solo cómo documenta el lenguaje.

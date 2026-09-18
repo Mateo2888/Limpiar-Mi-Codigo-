@@ -53,5 +53,17 @@ la heurística genérica podría borrar la documentación de una función export
 porque su primera palabra coincide con un verbo disparador (ej. "GetUser **retorna**
 el usuario...").
 
+## Casos cubiertos (Java)
+
+Los mismos 10 casos, adaptados a sintaxis Java, más uno adicional:
+
+| Carpeta | Qué demuestra |
+|---|---|
+| `11-javadoc-preserved` | Javadoc (`/** ... */`) con verbo disparador y pocas palabras se conserva siempre, vía la regla genérica del core ("los bloques se preservan siempre") — Java no necesitó la lógica especial de Go porque su documentación sí es de bloque. Ver `packages/languages/java/README.md`. |
+
+`tree-sitter-java` también tiene un matiz de gramática distinto: usa dos tipos de
+nodo de comentario separados (`line_comment`/`block_comment`), no un único tipo
+`comment` como los demás lenguajes.
+
 La prueba de invariancia estructural (punto 2 arriba) se aplica a **todos** los casos,
-en los tres lenguajes — es la garantía transversal de que nunca se toca lógica.
+en los cuatro lenguajes — es la garantía transversal de que nunca se toca lógica.

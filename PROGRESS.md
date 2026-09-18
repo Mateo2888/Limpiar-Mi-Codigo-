@@ -154,9 +154,26 @@ editor" documentada en `docs/decisions.md` §12.
       y se descartó: resuelve un problema distinto (código muerto, no comentarios de
       ruido), es solo JS/TS, y choca con la filosofía "no mejores mi código". Ver
       `docs/decisions.md` §13.
-- [ ] Agregar más lenguajes (siguientes candidatos: Java, C#) siguiendo el mismo
-      patrón — revisando primero cómo documenta idiomáticamente cada uno (lección de
-      Go: no asumir que el patrón de bloque/JSDoc generaliza).
+- [x] **Cuarto lenguaje: Java** (`packages/languages/java`, `tree-sitter-java`).
+      Confirmó la lección de Go: Javadoc es un comentario de **bloque** (`/** */`),
+      así que no necesitó la lógica especial de detección de cadena de comentarios
+      de Go — le basta la regla genérica del core. Reveló un matiz distinto:
+      `tree-sitter-java` usa dos tipos de nodo de comentario separados
+      (`line_comment`/`block_comment`) en vez de un único tipo `comment` como los
+      demás lenguajes — el adaptador usa `isBlock: node.type === 'block_comment'`
+      en vez del truco de texto de los otros adaptadores. Documentado en
+      `docs/decisions.md` §15.
+- [x] 11 fixtures de `tests/fixtures/java/*` (los 10 casos habituales + un
+      `11-javadoc-preserved` análogo al de Go). Registrado en el registry
+      (extensión `.java`) y vendorizado su `.wasm` en el `.vsix`. Total: 50 tests
+      en verde (`npm test`).
+- [x] Probado manualmente de verdad en los tres frentes (CLI `--json`/`--write`/
+      `--stdin`, y el `.vsix` empaquetado extraído en un directorio aislado del
+      monorepo) sobre archivos `.java` reales, igual que con Go.
+- [ ] Agregar más lenguajes (siguiente candidato: C#) siguiendo el mismo patrón —
+      revisando primero cómo documenta idiomáticamente y qué tipos de nodo de
+      comentario usa su gramática tree-sitter (lecciones de Go y Java: no asumir
+      ninguna de las dos cosas).
 - [ ] Plugin nativo de JetBrains/Neovim: evaluado y pospuesto — ver justificación en
       `docs/decisions.md` §12 (SDK completamente distinto, no reutiliza este código;
       la ruta CLI ya cubre la mayoría de editores).

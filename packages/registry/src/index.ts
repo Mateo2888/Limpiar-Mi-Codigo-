@@ -1,16 +1,19 @@
 import type { LanguageAdapter } from '@ai-code-cleaner/core';
 import { createGoAdapter } from '@ai-code-cleaner/lang-go';
+import { createJavaAdapter } from '@ai-code-cleaner/lang-java';
 import { createPythonAdapter } from '@ai-code-cleaner/lang-python';
 import { createTypeScriptAdapter } from '@ai-code-cleaner/lang-typescript';
 
 const TS_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']);
 const PY_EXTENSIONS = new Set(['.py', '.pyi']);
 const GO_EXTENSIONS = new Set(['.go']);
+const JAVA_EXTENSIONS = new Set(['.java']);
 
 export const SUPPORTED_EXTENSIONS: readonly string[] = [
   ...TS_EXTENSIONS,
   ...PY_EXTENSIONS,
   ...GO_EXTENSIONS,
+  ...JAVA_EXTENSIONS,
 ];
 
 export function extensionOf(fileName: string): string {
@@ -32,5 +35,6 @@ export function adapterForExtension(ext: string, wasmDir?: string): LanguageAdap
   if (TS_EXTENSIONS.has(ext)) return createTypeScriptAdapter(ext, wasmDir);
   if (PY_EXTENSIONS.has(ext)) return createPythonAdapter(wasmDir);
   if (GO_EXTENSIONS.has(ext)) return createGoAdapter(wasmDir);
+  if (JAVA_EXTENSIONS.has(ext)) return createJavaAdapter(wasmDir);
   return null;
 }

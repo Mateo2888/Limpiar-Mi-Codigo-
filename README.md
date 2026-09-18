@@ -38,6 +38,7 @@ VS Code real (ver `packages/vscode/README.md`).
 - TypeScript / JavaScript
 - Python
 - Go
+- Java
 
 Arquitectura pensada para agregar más lenguajes sin duplicar lógica (ver `CLAUDE.md`).
 
