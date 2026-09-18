@@ -1,6 +1,7 @@
 import { clean } from '@ai-code-cleaner/core';
 import * as vscode from 'vscode';
 import { adapterForExtension, extensionOf } from './adapters.js';
+import { saveBackup } from './backupStore.js';
 
 const DEBOUNCE_MS = 600;
 const REMOVE_SUGGESTION_COMMAND = 'aiCodeCleaner.removeSuggestedComment';
@@ -87,6 +88,7 @@ export class LiveWatcher implements vscode.CodeLensProvider {
     }
 
     if (config().get<boolean>('liveMode.autoApply', false)) {
+      saveBackup(document.uri, text);
       const edit = new vscode.WorkspaceEdit();
       const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(text.length));
       edit.replace(document.uri, fullRange, result.output);
@@ -115,6 +117,9 @@ export class LiveWatcher implements vscode.CodeLensProvider {
     // es de fiar — abstenerse en vez de borrar algo que ya no es lo sugerido.
     const stillPending = pending?.some((p) => p.range.isEqual(range));
     if (!pending || !stillPending) return;
+
+    const document = await vscode.workspace.openTextDocument(uri);
+    saveBackup(uri, document.getText());
 
     const edit = new vscode.WorkspaceEdit();
     edit.delete(uri, range);

@@ -72,10 +72,16 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
 - [x] `packages/vscode/src/adapters.ts` centraliza qué adaptador usar por extensión
       (TS/JS y ahora también Python), usado tanto por los comandos manuales como por
       el watcher — sin duplicar la lista de extensiones soportadas.
-- [ ] `Clean Selection` y `Restore` (comandos declarados en la visión original, no
-      implementados todavía — no son parte del MVP mínimo).
+- [x] `Clean Selection`: corre el motor sobre el archivo completo (por contexto/seguridad
+      de parseo) pero solo aplica las ediciones que caen dentro de la selección actual.
+- [x] `Restore`: `packages/vscode/src/backupStore.ts` guarda un backup de un solo nivel
+      justo antes de cada `WorkspaceEdit` que la extensión aplica (comando manual,
+      selección, o modo live con `autoApply`/sugerencia individual); `Restore` revierte
+      a ese backup. Complementa el Ctrl+Z nativo, no lo reemplaza.
 - [ ] Extensión VS Code aún no probada visualmente por un humano (ver nota de
       `test:e2e` arriba) — pendiente de que el usuario la pruebe con F5.
+- [ ] `packages/cli` (FASE 5) — siguiente incremento razonable ahora que el MVP de
+      VS Code está completo.
 
 ### Decisión de alcance tomada durante la implementación
 
