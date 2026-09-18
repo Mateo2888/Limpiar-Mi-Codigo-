@@ -23,7 +23,7 @@ y `docs/decisions.md` para el porqué de cada decisión técnica.
 ## Estado actual
 
 Ver `PROGRESS.md` para el detalle fase por fase. Resumen: MVP completo — motor
-(`core`), adaptadores de TypeScript/JavaScript y Python, extensión de VS Code
+(`core`), adaptadores de TypeScript/JavaScript, Python y Go, extensión de VS Code
 (los 4 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
 `Restore`, más el modo live con CodeLens) y una CLI (`ai-code-cleaner`) ya
 funcionan. La extensión ya se empaqueta en un `.vsix` real (`npm run package` en
@@ -35,11 +35,14 @@ sesión de Claude Code por restricciones de red del entorno (ver
 `packages/vscode/README.md`).
 
 **FASE 6 en progreso** (ampliar compatibilidad más allá de VS Code/TS/Python, ver
-`docs/decisions.md` §12): la CLI ahora tiene `--json` (reporte estructurado) y
+`docs/decisions.md` §12): la CLI tiene `--json` (reporte estructurado) y
 `--stdin`/`--stdin-filepath` (modo formatter estándar tipo Prettier/Black), para
 conectarla como herramienta externa desde Neovim, JetBrains, Sublime, etc. sin
 escribir un plugin nativo por editor — ver `packages/cli/README.md` para recetas.
-Pendiente: agregar más lenguajes (Go/Java/C# son los candidatos).
+Se agregó Go como tercer lenguaje (`docs/decisions.md` §14 — matiz importante:
+los doc comments de Go son de línea, no de bloque como JSDoc, y requirieron una
+regla de exclusión específica en el adaptador). Pendiente: Java/C# como siguientes
+lenguajes.
 
 ## Arquitectura
 
@@ -49,6 +52,7 @@ packages/
   languages/
     typescript/        # Adaptador tree-sitter para JS/TS/TSX
     python/             # Adaptador tree-sitter para Python
+    go/                 # Adaptador tree-sitter para Go (protege doc comments estilo godoc)
   registry/             # Único lugar que mapea extensión de archivo -> LanguageAdapter
   vscode/               # Extensión: comandos + modo live (watcher) + UI de diff
   cli/                  # CLI (ai-code-cleaner): dry-run / --write / --check

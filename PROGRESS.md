@@ -133,9 +133,30 @@ editor" documentada en `docs/decisions.md` §12.
       `--stdin` con TS y Python reales (stdout coincide byte a byte con lo esperado,
       stderr queda vacío en el camino feliz), y passthrough sin tocar ante un archivo
       con error de sintaxis.
-- [ ] Agregar más lenguajes (candidatos por demanda real en código generado por IA:
-      Go, Java, C#) siguiendo el patrón ya validado de `lang-typescript`/`lang-python`
-      (mismo `LanguageAdapter`, mismo `wasmDir` para empaquetado).
+- [x] **Cuarto lenguaje: Go** (`packages/languages/go`, `tree-sitter-go`, mismo patrón
+      que TS/Python). Reveló un matiz real: en Go los doc comments (godoc) son
+      comentarios de **línea** (`// FuncName hace X`), no de bloque como JSDoc en TS —
+      sin ajuste, la heurística de ruido podría borrar documentación real de una
+      función exportada. Resuelto en el propio adaptador (detecta cuando un comentario
+      de línea encadena, sin saltos en blanco, hasta un `func`/`type`/`const`/`var`/
+      `package`, y lo marca `isBlock: true` para que el core lo excluya siempre — sin
+      tocar `core`). Documentado en `docs/decisions.md` §14.
+- [x] 11 fixtures de `tests/fixtures/go/*` (los 10 casos habituales + uno nuevo,
+      `11-godoc-preserved`, que prueba explícitamente que un doc comment con verbo
+      disparador y pocas palabras sigue sin tocarse). Registrado en `@ai-code-cleaner/registry`
+      (extensión `.go`) y vendorizado su `.wasm` en el `.vsix` de VS Code.
+      Total: 37 tests en verde (`npm test`).
+- [x] Probado manualmente de verdad en los tres frentes: CLI (`--json`, `--write`,
+      `--stdin`) sobre archivos `.go` reales, y el `.vsix` empaquetado extraído en un
+      directorio aislado del monorepo, activado con un stub de `vscode`, limpiando un
+      archivo Go real de punta a punta (no solo que compile).
+- [x] Se evaluó integrar Knip (detector de código/exports sin uso) para este objetivo
+      y se descartó: resuelve un problema distinto (código muerto, no comentarios de
+      ruido), es solo JS/TS, y choca con la filosofía "no mejores mi código". Ver
+      `docs/decisions.md` §13.
+- [ ] Agregar más lenguajes (siguientes candidatos: Java, C#) siguiendo el mismo
+      patrón — revisando primero cómo documenta idiomáticamente cada uno (lección de
+      Go: no asumir que el patrón de bloque/JSDoc generaliza).
 - [ ] Plugin nativo de JetBrains/Neovim: evaluado y pospuesto — ver justificación en
       `docs/decisions.md` §12 (SDK completamente distinto, no reutiliza este código;
       la ruta CLI ya cubre la mayoría de editores).

@@ -202,3 +202,43 @@ natural del `core` actual. La ruta CLI cubre el 90% del valor (cualquier editor 
 soporte de "formatter externo", que son casi todos) sin ese costo. Reconsiderar un
 plugin nativo solo si la fricción de configurar la integración vía CLI resulta ser
 un obstáculo real para usuarios de un editor específico.
+
+## 13. Se evaluó y descartó Knip para "más lenguajes"
+
+Se preguntó si `Knip` (ISC, licencia permisiva) podía servir para este objetivo.
+Investigado y descartado: Knip detecta **archivos, dependencias y exports sin uso**
+para que el usuario los borre — un problema de "código muerto", no de "comentarios
+de ruido de IA". Además es JS/TS únicamente (más estrecho que este proyecto, no más
+amplio) y su propósito (sugerir refactors/borrados) choca directo con la filosofía
+no negociable de este proyecto ("NO MEJORES MI CÓDIGO. SOLO QUÍTALE EL RUIDO."). No
+se integra.
+
+## 14. Tercer lenguaje: Go, mismo patrón, con un matiz real de Go resuelto en el adaptador
+
+`packages/languages/go` sigue exactamente el patrón de `lang-typescript`/`lang-python`
+(`web-tree-sitter` + `tree-sitter-go`, `.wasm` prebuilt, `wasmDir` opcional). Un
+segundo lenguaje ya había validado que `LanguageAdapter` no estaba acoplado a JS/TS;
+Go valida algo distinto: **el patrón de exclusión "los bloques siempre se preservan"
+no alcanza para todos los lenguajes.**
+
+En Go, la convención de documentación (godoc) es un comentario de **línea** (`//`)
+inmediatamente arriba de una declaración (`func`/`type`/`const`/`var`/`package`), sin
+línea en blanco entre medio — a diferencia de JSDoc en TS, que es un comentario de
+**bloque** (`/** */`) y ya queda excluido por la regla genérica. Sin ajuste, la
+heurística de ruido podría borrar la documentación de una función exportada solo
+porque empieza con un verbo disparador (ej. `// GetUser retorna el usuario...`).
+
+**Solución, sin tocar `core`:** el adaptador de Go inspecciona el árbol — si un
+comentario de línea encadena (sin saltos de línea en blanco, incluso a través de
+varias líneas `//` consecutivas) hasta una declaración de ese tipo, se marca como
+`isBlock: true` en el `CommentNode`. El core ya excluye siempre los bloques de su
+heurística de ruido, así que esto reutiliza exactamente ese mecanismo — una
+reinterpretación deliberada de `isBlock` como "esto ya está clasificado como
+documentación, no evalúes la heurística de texto", no solo "empieza con `/*`".
+Cubierto por el fixture `tests/fixtures/go/11-godoc-preserved`, que prueba
+explícitamente que un doc comment con un verbo disparador y pocas palabras sigue
+sin tocarse.
+
+**Implicación para el próximo lenguaje:** antes de agregar uno nuevo, revisar cómo
+documenta idiomáticamente ese lenguaje (¿bloque como JSDoc, o línea como godoc?) en
+vez de asumir que el patrón de TS/Python generaliza.

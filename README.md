@@ -33,10 +33,11 @@ VS Code real (ver `packages/vscode/README.md`).
 - CLI (`ai-code-cleaner`) para correr el mismo motor desde terminal o CI: dry-run,
   `--write`, `--check`. Ver `packages/cli/README.md`.
 
-## Lenguajes soportados (MVP)
+## Lenguajes soportados
 
 - TypeScript / JavaScript
 - Python
+- Go
 
 Arquitectura pensada para agregar más lenguajes sin duplicar lógica (ver `CLAUDE.md`).
 

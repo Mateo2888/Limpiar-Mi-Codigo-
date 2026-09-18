@@ -11,7 +11,7 @@ node packages/cli/dist/cli.js **/*.ts --check --json     # igual, pero reporte J
 ```
 
 Soporta las mismas extensiones que la extensión de VS Code (ver
-`@ai-code-cleaner/registry`): `.ts/.tsx/.mts/.cts/.js/.jsx/.mjs/.cjs/.py/.pyi`.
+`@ai-code-cleaner/registry`): `.ts/.tsx/.mts/.cts/.js/.jsx/.mjs/.cjs/.py/.pyi/.go`.
 
 ## `--json`
 

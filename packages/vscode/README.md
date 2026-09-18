@@ -4,7 +4,7 @@ Implementado (FASE 3), comandos disponibles desde la Command Palette:
 
 - **`AI Code Cleaner: Clean Current File`** y **`... Preview Changes`**
   (`src/extension.ts`): corren el motor real (`@ai-code-cleaner/core` +
-  `lang-typescript`/`lang-python`) sobre el archivo activo y muestran el resultado con
+  `lang-typescript`/`lang-python`/`lang-go`) sobre el archivo activo y muestran el resultado con
   el diff nativo de VS Code (`vscode.diff` contra un documento virtual de solo lectura).
   `Clean Current File` además ofrece aplicar/descartar; si aplica, usa `WorkspaceEdit`
   (deshacer con Ctrl+Z) y aborta si el archivo cambió mientras se mostraba el diff.
@@ -40,7 +40,7 @@ Luego, en VS Code: Command Palette → `Extensions: Install from VSIX...` → se
 `npm run package` hace tres cosas, en orden (ver `docs/decisions.md` §11 para el porqué
 de cada una):
 1. `npm run build`: compila + empaqueta con esbuild todo el código propio
-   (`core`, `registry`, `lang-typescript`, `lang-python`) en un único `dist/extension.js`,
+   (`core`, `registry`, `lang-typescript`, `lang-python`, `lang-go`) en un único `dist/extension.js`,
    y vendoriza las gramáticas `.wasm` en `dist/wasm/` (`scripts/prepare-runtime.mjs`).
 2. `vsce package --no-dependencies`: genera el `.vsix` sin que `vsce` intente seguir los
    symlinks del monorepo (si no, arrastra paquetes hermanos enteros y falla).

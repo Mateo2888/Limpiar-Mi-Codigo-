@@ -65,7 +65,7 @@ function requireSupportedEditor(): { editor: vscode.TextEditor; ext: string } | 
   const ext = extensionOf(editor.document.fileName);
   if (!adapterForExtension(ext, WASM_DIR)) {
     void vscode.window.showWarningMessage(
-      `AI Code Cleaner: "${ext || editor.document.fileName}" todavía no está soportado (por ahora JS/TS/Python).`,
+      `AI Code Cleaner: "${ext || editor.document.fileName}" todavía no está soportado (por ahora JS/TS/Python/Go).`,
     );
     return null;
   }
