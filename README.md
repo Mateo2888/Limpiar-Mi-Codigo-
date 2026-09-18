@@ -27,11 +27,17 @@ VS Code real (ver `packages/vscode/README.md`).
 - Nunca cambia lógica, nombres, imports, tipos, condiciones ni formato.
 - Comandos manuales en VS Code (`Clean Current File`, `Preview Changes`,
   `Clean Selection`, `Restore`), todos con diff antes de aplicar y deshacer disponible.
+- **`Clean Workspace`**: analiza y limpia un proyecto entero de una sola vez — pensado
+  para instalar la extensión sobre un desarrollo ya avanzado hecho con IA. Muestra
+  cuántos comentarios encontró antes de tocar nada y aplica todo en un solo paso
+  reversible (un único Ctrl+Z para todo el lote).
 - Modo automático (opcional): sugiere eliminar un comentario redundante justo después de
   que lo escribes, vía CodeLens; no borra nada por su cuenta salvo que actives
   explícitamente `aiCodeCleaner.liveMode.autoApply`.
 - CLI (`ai-code-cleaner`) para correr el mismo motor desde terminal o CI: dry-run,
-  `--write`, `--check`. Ver `packages/cli/README.md`.
+  `--write`, `--check`, `--json`, `--stdin`. También limpia un proyecto entero
+  (`ai-code-cleaner .` recorre directorios, ignorando `node_modules` y similares).
+  Ver `packages/cli/README.md`.
 
 ## Lenguajes soportados
 
@@ -39,6 +45,7 @@ VS Code real (ver `packages/vscode/README.md`).
 - Python
 - Go
 - Java
+- C#
 
 Arquitectura pensada para agregar más lenguajes sin duplicar lógica (ver `CLAUDE.md`).
 

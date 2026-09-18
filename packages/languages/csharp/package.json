@@ -1,5 +1,5 @@
 {
-  "name": "@ai-code-cleaner/registry",
+  "name": "@ai-code-cleaner/lang-csharp",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,10 +11,7 @@
   },
   "dependencies": {
     "@ai-code-cleaner/core": "*",
-    "@ai-code-cleaner/lang-typescript": "*",
-    "@ai-code-cleaner/lang-python": "*",
-    "@ai-code-cleaner/lang-go": "*",
-    "@ai-code-cleaner/lang-java": "*",
-    "@ai-code-cleaner/lang-csharp": "*"
+    "web-tree-sitter": "^0.25.0",
+    "tree-sitter-c-sharp": "^0.23.5"
   }
 }

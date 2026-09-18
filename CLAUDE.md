@@ -23,16 +23,16 @@ y `docs/decisions.md` para el porqué de cada decisión técnica.
 ## Estado actual
 
 Ver `PROGRESS.md` para el detalle fase por fase. Resumen: MVP completo — motor
-(`core`), adaptadores de TypeScript/JavaScript, Python, Go y Java, extensión de
-VS Code (los 4 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
-`Restore`, más el modo live con CodeLens) y una CLI (`ai-code-cleaner`) ya
-funcionan. La extensión ya se empaqueta en un `.vsix` real (`npm run package` en
-`packages/vscode`) y se verificó de extremo a extremo extrayéndolo en un
-directorio aislado del monorepo con un stub de `vscode` — pero **la UI real dentro
-de un VS Code de verdad** (F5, o instalando el `.vsix`) sigue sin confirmación
-humana, porque un test con `@vscode/test-electron` no se pudo correr dentro de una
-sesión de Claude Code por restricciones de red del entorno (ver
-`packages/vscode/README.md`).
+(`core`), adaptadores de TypeScript/JavaScript, Python, Go, Java y C#, extensión de
+VS Code (los 5 comandos: `Clean Current File`, `Preview Changes`, `Clean Selection`,
+`Restore`, `Clean Workspace`, más el modo live con CodeLens) y una CLI
+(`ai-code-cleaner`, con recorrido de directorios) ya funcionan. La extensión ya se
+empaqueta en un `.vsix` real (`npm run package` en `packages/vscode`) y se
+verificó de extremo a extremo extrayéndolo en un directorio aislado del monorepo
+con un stub de `vscode` — pero **la UI real dentro de un VS Code de verdad** (F5, o
+instalando el `.vsix`) sigue sin confirmación humana, porque un test con
+`@vscode/test-electron` no se pudo correr dentro de una sesión de Claude Code por
+restricciones de red del entorno (ver `packages/vscode/README.md`).
 
 **FASE 6 en progreso** (ampliar compatibilidad más allá de VS Code/TS/Python, ver
 `docs/decisions.md` §12): la CLI tiene `--json` (reporte estructurado) y
@@ -41,9 +41,13 @@ conectarla como herramienta externa desde Neovim, JetBrains, Sublime, etc. sin
 escribir un plugin nativo por editor — ver `packages/cli/README.md` para recetas.
 Se agregaron Go (`docs/decisions.md` §14 — sus doc comments son de línea, no de
 bloque como JSDoc, y requirieron una regla de exclusión específica en el
-adaptador) y Java (§15 — Javadoc sí es de bloque, no necesitó esa lógica, pero su
-gramática usa dos tipos de nodo de comentario separados en vez de uno). Pendiente:
-C# como siguiente lenguaje.
+adaptador), Java (§15 — Javadoc sí es de bloque, no necesitó esa lógica, pero su
+gramática usa dos tipos de nodo de comentario separados en vez de uno) y C#
+(§16 — mismo matiz que Go, no el de Java). También se agregó soporte de "proyecto
+completo": la CLI recorre directorios recursivamente (`ai-code-cleaner .`) y la
+extensión tiene `AI Code Cleaner: Clean Workspace`, que analiza y limpia todo el
+proyecto abierto con un único `WorkspaceEdit` atómico (§17) — este es el flujo
+para "instalar sobre un desarrollo ya avanzado con IA y que lo limpie".
 
 ## Arquitectura
 
@@ -55,9 +59,10 @@ packages/
     python/             # Adaptador tree-sitter para Python
     go/                 # Adaptador tree-sitter para Go (protege doc comments estilo godoc)
     java/               # Adaptador tree-sitter para Java (dos tipos de nodo: line/block_comment)
+    csharp/             # Adaptador tree-sitter para C# (protege doc comments XML, como Go)
   registry/             # Único lugar que mapea extensión de archivo -> LanguageAdapter
-  vscode/               # Extensión: comandos + modo live (watcher) + UI de diff
-  cli/                  # CLI (ai-code-cleaner): dry-run / --write / --check
+  vscode/               # Extensión: comandos (incl. Clean Workspace) + modo live + UI de diff
+  cli/                  # CLI (ai-code-cleaner): dry-run / --write / --check, recorre directorios
 ```
 
 Regla dura: `core` y `languages/*` **no importan `vscode`**. `registry` es el único

@@ -6,12 +6,27 @@ limpieza duplicada, solo lectura/escritura de archivos y parseo de flags.
 ```bash
 node packages/cli/dist/cli.js archivo.ts                # dry-run: reporta qué se eliminaría
 node packages/cli/dist/cli.js archivo.ts otro.py --write # aplica los cambios
-node packages/cli/dist/cli.js **/*.ts --check            # exit 1 si algo cambiaría (CI)
-node packages/cli/dist/cli.js **/*.ts --check --json     # igual, pero reporte JSON
+node packages/cli/dist/cli.js . --write                  # limpia TODO el proyecto (recursivo)
+node packages/cli/dist/cli.js . --check --json           # igual, sin tocar nada, reporte JSON (CI)
 ```
 
 Soporta las mismas extensiones que la extensión de VS Code (ver
-`@ai-code-cleaner/registry`): `.ts/.tsx/.mts/.cts/.js/.jsx/.mjs/.cjs/.py/.pyi/.go/.java`.
+`@ai-code-cleaner/registry`): `.ts/.tsx/.mts/.cts/.js/.jsx/.mjs/.cjs/.py/.pyi/.go/.java/.cs`.
+
+## Limpiar un proyecto entero
+
+Un argumento que es una carpeta (por ejemplo `.`) se recorre recursivamente,
+procesando todos los archivos con extensión soportada. Se ignoran por defecto
+`node_modules`, `.git`, `dist`, `build`, `out`, `target`, `bin`, `obj`, `vendor`,
+entornos virtuales de Python (`.venv`/`venv`/`__pycache__`), cachés de IDE, etc.
+`--ignore <nombre>` agrega más carpetas a ignorar (repetible). Este es el flujo
+pensado para "acabo de instalar esto sobre un proyecto ya avanzado hecho con IA":
+
+```bash
+node packages/cli/dist/cli.js .                          # dry-run de todo el proyecto
+node packages/cli/dist/cli.js . --write                   # limpia todo de una vez
+node packages/cli/dist/cli.js . --ignore generated --write # + ignora una carpeta propia
+```
 
 ## `--json`
 

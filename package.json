@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "build:libs": "npm run build --workspace=@ai-code-cleaner/core && npm run build --workspace=@ai-code-cleaner/lang-typescript && npm run build --workspace=@ai-code-cleaner/lang-python && npm run build --workspace=@ai-code-cleaner/lang-go && npm run build --workspace=@ai-code-cleaner/lang-java && npm run build --workspace=@ai-code-cleaner/registry",
+    "build:libs": "npm run build --workspace=@ai-code-cleaner/core && npm run build --workspace=@ai-code-cleaner/lang-typescript && npm run build --workspace=@ai-code-cleaner/lang-python && npm run build --workspace=@ai-code-cleaner/lang-go && npm run build --workspace=@ai-code-cleaner/lang-java && npm run build --workspace=@ai-code-cleaner/lang-csharp && npm run build --workspace=@ai-code-cleaner/registry",
     "typecheck": "npm run build:libs && npm run typecheck --workspaces --if-present",
     "build": "npm run build:libs && npm run build --workspaces --if-present"
   },

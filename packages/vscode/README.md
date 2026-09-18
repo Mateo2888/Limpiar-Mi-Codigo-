@@ -4,17 +4,27 @@ Implementado (FASE 3), comandos disponibles desde la Command Palette:
 
 - **`AI Code Cleaner: Clean Current File`** y **`... Preview Changes`**
   (`src/extension.ts`): corren el motor real (`@ai-code-cleaner/core` +
-  `lang-typescript`/`lang-python`/`lang-go`/`lang-java`) sobre el archivo activo y muestran el resultado con
-  el diff nativo de VS Code (`vscode.diff` contra un documento virtual de solo lectura).
-  `Clean Current File` además ofrece aplicar/descartar; si aplica, usa `WorkspaceEdit`
-  (deshacer con Ctrl+Z) y aborta si el archivo cambió mientras se mostraba el diff.
+  `lang-typescript`/`lang-python`/`lang-go`/`lang-java`/`lang-csharp`) sobre el
+  archivo activo y muestran el resultado con el diff nativo de VS Code
+  (`vscode.diff` contra un documento virtual de solo lectura). `Clean Current File`
+  además ofrece aplicar/descartar; si aplica, usa `WorkspaceEdit` (deshacer con
+  Ctrl+Z) y aborta si el archivo cambió mientras se mostraba el diff.
 - **`AI Code Cleaner: Clean Selection`**: igual que `Clean Current File`, pero solo
   aplica las ediciones que caen dentro del texto seleccionado (sigue analizando el
   archivo completo, por seguridad y contexto de parseo).
+- **`AI Code Cleaner: Clean Workspace`**: analiza y limpia **todo el proyecto abierto**
+  de una sola vez — el flujo pensado para instalar la extensión sobre un desarrollo
+  ya avanzado hecho con IA. Usa `vscode.workspace.findFiles` (respeta `.gitignore` y
+  las exclusiones configuradas por el usuario, más `node_modules` excluido siempre),
+  analiza con una barra de progreso cancelable, muestra un resumen ("N comentarios en
+  M archivos") en vez de un diff por archivo, y si se confirma, aplica todo con un
+  único `WorkspaceEdit` multi-archivo — una sola operación atómica, un solo Ctrl+Z
+  para deshacer el lote completo. Revalida cada archivo contra lo analizado antes de
+  aplicar, para no pisar cambios hechos mientras se mostraba el resumen.
 - **`AI Code Cleaner: Restore`**: deshace el último cambio aplicado por AI Code Cleaner
   en el archivo activo (`src/backupStore.ts` guarda un backup de un solo nivel justo
-  antes de cada `WorkspaceEdit` que la propia extensión aplica). Complementa, no
-  reemplaza, el Ctrl+Z nativo de VS Code.
+  antes de cada `WorkspaceEdit` que la propia extensión aplica, incluidos los de
+  `Clean Workspace` por archivo). Complementa, no reemplaza, el Ctrl+Z nativo de VS Code.
 - **Modo live** (`src/liveWatcher.ts`): sugiere vía CodeLens eliminar un comentario de
   ruido justo después de escribirlo (`aiCodeCleaner.liveMode.enabled`, default `true`);
   con `aiCodeCleaner.liveMode.autoApply` (default `false`) lo borra sin preguntar. También
@@ -40,8 +50,9 @@ Luego, en VS Code: Command Palette → `Extensions: Install from VSIX...` → se
 `npm run package` hace tres cosas, en orden (ver `docs/decisions.md` §11 para el porqué
 de cada una):
 1. `npm run build`: compila + empaqueta con esbuild todo el código propio
-   (`core`, `registry`, `lang-typescript`, `lang-python`, `lang-go`, `lang-java`) en un único `dist/extension.js`,
-   y vendoriza las gramáticas `.wasm` en `dist/wasm/` (`scripts/prepare-runtime.mjs`).
+   (`core`, `registry`, `lang-typescript`, `lang-python`, `lang-go`, `lang-java`,
+   `lang-csharp`) en un único `dist/extension.js`, y vendoriza las gramáticas
+   `.wasm` en `dist/wasm/` (`scripts/prepare-runtime.mjs`).
 2. `vsce package --no-dependencies`: genera el `.vsix` sin que `vsce` intente seguir los
    symlinks del monorepo (si no, arrastra paquetes hermanos enteros y falla).
 3. `scripts/finalize-vsix.mjs`: inyecta `node_modules/web-tree-sitter` (vendorizado sin

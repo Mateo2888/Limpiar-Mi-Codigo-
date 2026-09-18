@@ -267,3 +267,64 @@ directorio aislado y ejecutado contra un archivo `.java` real.
 **Implicación reforzada:** cada gramática tree-sitter puede nombrar sus nodos de
 comentario distinto — revisar el `grammar.js`/`node-types.json` del paquete real
 antes de asumir que existe un solo tipo `comment`, no solo cómo documenta el lenguaje.
+
+## 16. Quinto lenguaje: C# — mismo matiz que Go, no el de Java
+
+`tree-sitter-c-sharp` usa un único tipo de nodo `comment` (como JS/TS/Python/Go, no
+como Java). Pero su doc comment idiomático (XML doc, `/// <summary>...`) es un
+comentario de **línea** — la propia gramática ni distingue `///` de `//` como
+tokens separados, igual que en Go. `packages/languages/csharp` reutiliza el mismo
+mecanismo de `lang-go` (cadena de comentarios de línea sin salto en blanco hasta una
+declaración), con el conjunto de tipos de declaración de C# (`class_declaration`,
+`method_declaration`, `property_declaration`, `field_declaration`, etc.).
+
+Detalle de empaquetado: el paquete npm se llama `tree-sitter-c-sharp` (con guiones)
+pero el `.wasm` que publica se llama `tree-sitter-c_sharp.wasm` (con guion bajo) —
+nombres distintos, hay que resolverlos por separado en vez de derivar uno del otro
+(`packages/languages/csharp/src/index.ts`, `packages/vscode/scripts/prepare-runtime.mjs`).
+
+Cubierto por `tests/fixtures/csharp/11-xmldoc-preserved`. 63 tests en verde en
+total. Verificado de extremo a extremo (CLI + `.vsix` empaquetado y extraído en un
+directorio aislado) contra un archivo `.cs` real.
+
+Con TS/JS, Python, Go, Java y C# cubiertos, el patrón para agregar un lenguaje
+nuevo está bien establecido: (1) confirmar que el paquete npm de la gramática
+publica un `.wasm` prebuilt; (2) revisar su `grammar.js` para el/los tipo(s) de
+nodo de comentario reales; (3) revisar si el doc comment idiomático del lenguaje es
+de bloque (reutiliza la regla del core sin cambios, como Java) o de línea (necesita
+el mecanismo de cadena-hasta-declaración de `lang-go`/`lang-csharp`, con los tipos
+de declaración propios del lenguaje).
+
+## 17. La CLI recorre directorios y la extensión limpia el workspace completo
+
+Necesidad real señalada por el usuario: instalar la herramienta sobre un proyecto
+ya existente (típicamente con mucho código generado por IA) y que la analice y
+limpie de una sola vez, no archivo por archivo.
+
+**CLI:** un argumento que es un directorio ahora se recorre recursivamente
+(`expandTargets`/`collectSupportedFiles` en `packages/cli/src/cli.ts`), filtrando
+por las extensiones que el `registry` soporta y saltando una lista de carpetas
+ignoradas por defecto (`node_modules`, `.git`, `dist`, `build`, `target`, `bin`,
+`obj`, `vendor`, entornos virtuales de Python, cachés de IDE, etc.), ampliable con
+`--ignore <nombre>` repetible. Se implementó con un recorrido de directorios propio
+(sin dependencia nueva) en vez de una librería de globbing — no hacía falta
+sintaxis de glob arbitraria, solo "todo archivo soportado bajo esta carpeta".
+`ai-code-cleaner .` limpia (o reporta, con `--check`/`--json`) un proyecto entero.
+
+**Extensión de VS Code:** comando nuevo `AI Code Cleaner: Clean Workspace`. Usa
+`vscode.workspace.findFiles` (que ya respeta `.gitignore` y las exclusiones de
+búsqueda configuradas por el usuario, sin reinventar esa lógica) más una exclusión
+explícita de `node_modules`. Analiza todos los archivos encontrados con una barra
+de progreso cancelable, muestra un resumen ("N comentarios en M archivos") en vez
+de abrir un diff por archivo (inmanejable en un proyecto grande), y si el usuario
+confirma, aplica todo con un único `WorkspaceEdit` multi-archivo — una sola
+operación atómica, un solo Ctrl+Z para deshacer el lote completo. Antes de
+aplicar, vuelve a comparar cada archivo contra el texto analizado y descarta del
+lote cualquiera que haya cambiado mientras tanto (mismo principio de seguridad que
+`Clean Current File`, adaptado a múltiples archivos).
+
+Verificado de extremo a extremo contra el `.vsix` real empaquetado: un stub de
+`vscode` que simula `findFiles` devolviendo 3 archivos (TS, Python, Go) — dos con
+ruido, uno ya limpio — confirmó que el comando detecta los 2 correctos, deja el
+tercero fuera del lote, y aplica un único `WorkspaceEdit` con el contenido esperado
+para cada archivo.

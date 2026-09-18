@@ -65,5 +65,13 @@ Los mismos 10 casos, adaptados a sintaxis Java, más uno adicional:
 nodo de comentario separados (`line_comment`/`block_comment`), no un único tipo
 `comment` como los demás lenguajes.
 
+## Casos cubiertos (C#)
+
+Los mismos 10 casos, adaptados a sintaxis C#, más uno adicional:
+
+| Carpeta | Qué demuestra |
+|---|---|
+| `11-xmldoc-preserved` | El doc comment XML de C# (`/// <summary>...`) con verbo disparador y pocas palabras se conserva siempre — igual matiz que Go (es un comentario de línea, no de bloque), a diferencia de Java. Ver `packages/languages/csharp/README.md`. |
+
 La prueba de invariancia estructural (punto 2 arriba) se aplica a **todos** los casos,
-en los cuatro lenguajes — es la garantía transversal de que nunca se toca lógica.
+en los cinco lenguajes — es la garantía transversal de que nunca se toca lógica.

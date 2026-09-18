@@ -170,10 +170,37 @@ editor" documentada en `docs/decisions.md` §12.
 - [x] Probado manualmente de verdad en los tres frentes (CLI `--json`/`--write`/
       `--stdin`, y el `.vsix` empaquetado extraído en un directorio aislado del
       monorepo) sobre archivos `.java` reales, igual que con Go.
-- [ ] Agregar más lenguajes (siguiente candidato: C#) siguiendo el mismo patrón —
-      revisando primero cómo documenta idiomáticamente y qué tipos de nodo de
-      comentario usa su gramática tree-sitter (lecciones de Go y Java: no asumir
-      ninguna de las dos cosas).
+- [x] **Quinto lenguaje: C#** (`packages/languages/csharp`, `tree-sitter-c-sharp`).
+      Mismo matiz que Go, no el de Java: su doc comment idiomático (`/// <summary>`)
+      es de línea, así que reutiliza el mecanismo de cadena-hasta-declaración de
+      `lang-go` (con los tipos de declaración de C#). Detalle de empaquetado propio:
+      el paquete npm (`tree-sitter-c-sharp`) y su `.wasm`
+      (`tree-sitter-c_sharp.wasm`, con guion bajo) tienen nombres distintos.
+      Documentado en `docs/decisions.md` §16.
+- [x] 11 fixtures de `tests/fixtures/csharp/*` (los 10 habituales + un
+      `11-xmldoc-preserved`). Registrado en el registry (extensión `.cs`) y
+      vendorizado su `.wasm` en el `.vsix`. Total: 63 tests en verde (`npm test`).
+- [x] Probado manualmente de verdad en los tres frentes (CLI, `.vsix` empaquetado)
+      sobre archivos `.cs` reales, igual que con Go/Java.
+- [x] **CLI: recorrido de directorios** (`expandTargets`/`collectSupportedFiles`,
+      sin dependencia nueva): un argumento que es una carpeta se recorre
+      recursivamente buscando extensiones soportadas, saltando `node_modules`,
+      `.git`, `dist`, `build`, `target`, `bin`, `obj`, `vendor`, entornos
+      virtuales, cachés de IDE, etc. por defecto (ampliable con `--ignore
+      <nombre>`). `ai-code-cleaner .` ahora limpia un proyecto entero de una sola
+      vez. Probado de verdad con un proyecto simulado de 5 lenguajes +
+      `node_modules`/`dist` con ruido: los 5 archivos reales se limpiaron
+      correctamente y `node_modules`/`dist` quedaron intactos.
+- [x] **VS Code: comando `Clean Workspace`** — analiza todo el proyecto abierto
+      (`vscode.workspace.findFiles`, respeta `.gitignore`/exclusiones del usuario),
+      muestra un resumen (N comentarios en M archivos) y aplica todo con un único
+      `WorkspaceEdit` multi-archivo (una sola operación atómica, un solo Ctrl+Z
+      para el lote completo); revalida cada archivo contra lo analizado antes de
+      aplicar y descarta los que cambiaron mientras tanto. Este es el flujo
+      pedido explícitamente: "instalar sobre un proyecto ya avanzado y que lo
+      analice y deje limpio". Verificado de extremo a extremo contra el `.vsix`
+      real con un proyecto simulado de 3 archivos (2 con ruido, 1 limpio) en 3
+      lenguajes distintos. Documentado en `docs/decisions.md` §17.
 - [ ] Plugin nativo de JetBrains/Neovim: evaluado y pospuesto — ver justificación en
       `docs/decisions.md` §12 (SDK completamente distinto, no reutiliza este código;
       la ruta CLI ya cubre la mayoría de editores).
