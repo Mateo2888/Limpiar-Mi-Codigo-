@@ -69,9 +69,6 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
       el borrado). Con `aiCodeCleaner.liveMode.autoApply` activado, aplica sin
       preguntar; por defecto (`false`) solo sugiere. `aiCodeCleaner.liveMode.enabled`
       (default `true`) apaga todo el watcher si se desactiva.
-- [x] `packages/vscode/src/adapters.ts` centraliza qué adaptador usar por extensión
-      (TS/JS y ahora también Python), usado tanto por los comandos manuales como por
-      el watcher — sin duplicar la lista de extensiones soportadas.
 - [x] `Clean Selection`: corre el motor sobre el archivo completo (por contexto/seguridad
       de parseo) pero solo aplica las ediciones que caen dentro de la selección actual.
 - [x] `Restore`: `packages/vscode/src/backupStore.ts` guarda un backup de un solo nivel
@@ -80,8 +77,25 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
       a ese backup. Complementa el Ctrl+Z nativo, no lo reemplaza.
 - [ ] Extensión VS Code aún no probada visualmente por un humano (ver nota de
       `test:e2e` arriba) — pendiente de que el usuario la pruebe con F5.
-- [ ] `packages/cli` (FASE 5) — siguiente incremento razonable ahora que el MVP de
-      VS Code está completo.
+
+## FASE 5 — CLI ✅
+
+- [x] `packages/registry`: nuevo paquete que centraliza qué `LanguageAdapter` usar por
+      extensión (antes vivía duplicado en `packages/vscode/src/adapters.ts`). Ahora
+      tanto la extensión de VS Code como la CLI dependen de este único registro —
+      se creó justo cuando hubo un segundo consumidor real, no antes.
+- [x] `packages/cli/src/cli.ts`: CLI mínima sin dependencias nuevas más allá de node
+      built-ins. `ai-code-cleaner <archivos...>` en modo dry-run reporta cuántos
+      comentarios de ruido hay por archivo; `--write` aplica los cambios; `--check`
+      no toca nada y termina con código 1 si algún archivo cambiaría (pensado para CI).
+      Reutiliza `clean()` de `@ai-code-cleaner/core` tal cual — cero lógica de limpieza
+      duplicada respecto a la extensión de VS Code.
+- [x] Probada manualmente de verdad (no solo compilación): corrida en modo dry-run,
+      `--check` (exit code 1 con cambios pendientes, exit 0 sin ellos) y `--write`
+      sobre una copia de uno de los fixtures, verificando el contenido resultante
+      byte a byte contra lo esperado.
+- [x] `npm test` (24 tests), `typecheck`, `build`, `lint` en verde con los paquetes
+      nuevos incluidos.
 
 ### Decisión de alcance tomada durante la implementación
 
@@ -102,11 +116,8 @@ gramática WASM de tree-sitter es asíncrono (una sola vez, cacheado), así que
 `findComments`/`nextCodeNodeText`/`hasParseErrorNear` devuelven `Promise`. `core/clean()`
 también es async por transitividad.
 
-## FASE 4 — Validación (pendiente)
+## FASE 4 — Validación
 
-- [ ] `npm test`, `npm run lint`, `npm run typecheck`, `npm run build` en verde.
-- [ ] Prueba manual en VS Code real con archivos reales generados por un agente de IA.
-
-## FASE 5 — CLI (pendiente, después de que el MVP sea estable)
-
-- [ ] `packages/cli` reutilizando `core` + `languages/*` sin duplicar lógica.
+- [x] `npm test`, `npm run lint`, `npm run typecheck`, `npm run build` en verde.
+- [ ] Prueba manual en VS Code real con archivos reales generados por un agente de IA
+      (pendiente de que el usuario la haga — ver nota de `test:e2e`).

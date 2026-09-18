@@ -41,8 +41,7 @@
   },
   "dependencies": {
     "@ai-code-cleaner/core": "*",
-    "@ai-code-cleaner/lang-typescript": "*",
-    "@ai-code-cleaner/lang-python": "*"
+    "@ai-code-cleaner/registry": "*"
   },
   "devDependencies": {
     "@types/vscode": "^1.90.0",

@@ -11,7 +11,10 @@ ver el diff y aceptar o rechazar antes de que se aplique un cambio.
 
 ## Estado
 
-En desarrollo (ver `PROGRESS.md`). Todavía no hay build instalable.
+MVP funcional (ver `PROGRESS.md`): motor, extensión de VS Code y CLI ya funcionan y
+tienen pruebas automatizadas en verde. Todavía no hay una versión empaquetada/publicada
+para instalar directamente desde el Marketplace o npm — hay que correrla desde el
+código fuente (ver `CLAUDE.md`).
 
 ## Qué hace
 
@@ -20,9 +23,13 @@ En desarrollo (ver `PROGRESS.md`). Todavía no hay build instalable.
 - Conserva comentarios que explican una decisión de negocio, una limitación externa,
   un workaround, o cualquier cosa no evidente desde el código — ante la duda, conserva.
 - Nunca cambia lógica, nombres, imports, tipos, condiciones ni formato.
-- Modo manual: comando en VS Code para limpiar el archivo actual, con diff antes de aplicar.
+- Comandos manuales en VS Code (`Clean Current File`, `Preview Changes`,
+  `Clean Selection`, `Restore`), todos con diff antes de aplicar y deshacer disponible.
 - Modo automático (opcional): sugiere eliminar un comentario redundante justo después de
-  que lo escribes, sin analizar el resto del archivo.
+  que lo escribes, vía CodeLens; no borra nada por su cuenta salvo que actives
+  explícitamente `aiCodeCleaner.liveMode.autoApply`.
+- CLI (`ai-code-cleaner`) para correr el mismo motor desde terminal o CI: dry-run,
+  `--write`, `--check`. Ver `packages/cli/README.md`.
 
 ## Lenguajes soportados (MVP)
 

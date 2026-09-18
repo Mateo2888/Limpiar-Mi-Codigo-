@@ -1,6 +1,6 @@
 import { clean } from '@ai-code-cleaner/core';
+import { adapterForExtension, extensionOf } from '@ai-code-cleaner/registry';
 import * as vscode from 'vscode';
-import { adapterForExtension, extensionOf } from './adapters.js';
 import { saveBackup } from './backupStore.js';
 
 const DEBOUNCE_MS = 600;

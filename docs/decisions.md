@@ -104,3 +104,20 @@ recién escrito; `aiCodeCleaner.liveMode.autoApply` (borrado inmediato sin inter
 queda apagado por defecto. Motivo: evitar sorpresas la primera vez que alguien instala la
 extensión, mientras se gana confianza en la heurística. Es reversible por configuración,
 no una limitación técnica.
+
+## 9. `packages/registry` se creó al aparecer un segundo consumidor real
+
+La lógica de "qué `LanguageAdapter` usar según la extensión del archivo" vivió
+primero solo en `packages/vscode/src/adapters.ts` (único consumidor en ese momento).
+Al implementar `packages/cli`, que necesita exactamente la misma decisión, se movió
+a un paquete nuevo (`@ai-code-cleaner/registry`) del que ambos dependen. No se creó
+antes "por si acaso" — se esperó a tener un segundo caso de uso real para no
+adivinar una abstracción que quizás no hiciera falta.
+
+## 10. CLI mínima, sin dependencias de parseo de argumentos
+
+`packages/cli/src/cli.ts` parsea `process.argv` a mano (un `for` con comparaciones de
+string) en vez de usar `yargs`/`commander`. Con tres flags (`--write`, `--check`,
+`--help`) una librería de parsing de argumentos no aporta nada que no sean unas
+pocas líneas de más superficie de dependencias. Si la CLI crece (subcomandos, muchas
+opciones), reconsiderar esta decisión — no antes.
