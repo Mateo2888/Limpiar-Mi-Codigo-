@@ -11,10 +11,12 @@ ver el diff y aceptar o rechazar antes de que se aplique un cambio.
 
 ## Estado
 
-MVP funcional (ver `PROGRESS.md`): motor, extensión de VS Code y CLI ya funcionan y
-tienen pruebas automatizadas en verde. Todavía no hay una versión empaquetada/publicada
-para instalar directamente desde el Marketplace o npm — hay que correrla desde el
-código fuente (ver `CLAUDE.md`).
+MVP funcional y empaquetable (ver `PROGRESS.md` para el detalle exacto por fase):
+motor, extensión de VS Code (con `.vsix` instalable) y CLI ya funcionan, con pruebas
+automatizadas en verde. Todavía no está publicada en el VS Code Marketplace ni en
+npm — se instala generando el `.vsix`/ejecutando la CLI desde el código fuente (ver
+abajo). Lo único que falta de confirmación humana: probar la extensión dentro de un
+VS Code real (ver `packages/vscode/README.md`).
 
 ## Qué hace
 
@@ -40,7 +42,34 @@ Arquitectura pensada para agregar más lenguajes sin duplicar lógica (ver `CLAU
 
 ## Instalación
 
-Pendiente de la primera versión publicable (FASE 3 en adelante).
+Todavía no está publicada en el VS Code Marketplace ni en npm — se genera localmente
+desde el código fuente. Requiere Node.js 22+.
+
+### Extensión de VS Code
+
+```bash
+git clone https://github.com/Mateo2888/Limpiar-Mi-Codigo-.git
+cd Limpiar-Mi-Codigo-
+npm install
+cd packages/vscode
+npm run package        # genera dist/ai-code-cleaner.vsix
+```
+
+Luego en VS Code: Command Palette → **`Extensions: Install from VSIX...`** → seleccionar
+`packages/vscode/dist/ai-code-cleaner.vsix`.
+
+Para probarla sin empaquetar (modo desarrollo): abrir `packages/vscode` en VS Code y
+presionar **F5** (abre un Extension Development Host con la extensión ya cargada).
+
+### CLI
+
+```bash
+npm install && npm run build   # desde la raíz del repo
+node packages/cli/dist/cli.js archivo.ts          # dry-run
+node packages/cli/dist/cli.js archivo.ts --write  # aplica los cambios
+```
+
+Detalle de flags en `packages/cli/README.md`.
 
 ## Desarrollo
 
