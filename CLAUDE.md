@@ -23,8 +23,13 @@ y `docs/decisions.md` para el porqué de cada decisión técnica.
 ## Estado actual
 
 Ver `PROGRESS.md` para el detalle fase por fase. Resumen: FASE 3 en progreso — el
-motor (`core`) y el adaptador de TypeScript/JavaScript ya funcionan y pasan los 10
-fixtures; falta el adaptador de Python y la extensión de VS Code (comandos + modo live).
+motor (`core`), el adaptador de TypeScript/JavaScript y la extensión de VS Code
+(comandos `Clean Current File` / `Preview Changes` con diff nativo) ya funcionan.
+Falta el adaptador de Python y el modo live (watcher automático). La UI de la
+extensión compila y tiene un test de integración escrito, pero no se pudo correr
+dentro de esta sesión por restricciones de red del entorno (ver
+`packages/vscode/README.md`) — probarla en VS Code real sigue pendiente de
+confirmación humana.
 
 ## Arquitectura
 

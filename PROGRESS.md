@@ -40,11 +40,24 @@ Formato: fase, qué está hecho, qué falta. Actualizar al cerrar cada increment
       invariancia estructural (comparar árboles sin nodos de comentario) y la
       verificación de que el resultado sigue siendo sintácticamente válido.
 - [x] `npm test`, `npm run typecheck`, `npm run build`, `npm run lint` en verde.
+- [x] Implementar `packages/vscode`: comandos `Clean Current File` y `Preview Changes`
+      corriendo el motor real sobre el archivo activo, con diff nativo de VS Code
+      (`vscode.diff` + documento virtual de solo lectura) y aplicar/descartar vía
+      `WorkspaceEdit` (deshacer con Ctrl+Z; aborta si el archivo cambió mientras se
+      mostraba el diff). Ver `packages/vscode/README.md`.
+- [x] Test de integración end-to-end (`packages/vscode/src/test/`, corre con
+      `npm run test:e2e` usando `@vscode/test-electron`): activa la extensión de verdad,
+      corre `Preview Changes` sobre un archivo con ruido real, verifica que se abre la
+      pestaña de diff. **No se pudo ejecutar dentro de esta sesión** porque el proxy de
+      salida del entorno bloquea `update.code.visualstudio.com` (necesario para
+      descargar el binario de VS Code); debería funcionar en una máquina normal. Sin
+      esto, la UI real de la extensión no quedó verificada visualmente en esta sesión —
+      solo compilación, typecheck y el motor puro contra fixtures.
 - [ ] Implementar `packages/languages/python` + sus fixtures (siguiente incremento).
-- [ ] Implementar `packages/vscode`: comando `Clean Current File` + `Preview Changes` con
-      diff nativo de VS Code y aplicar/rechazar vía `WorkspaceEdit`.
 - [ ] Implementar modo live (watcher con debounce + CodeLens de sugerencia), detrás de
       configuración (`aiCodeCleaner.liveMode.enabled` / `.autoApply`).
+- [ ] `Clean Selection` y `Restore` (comandos declarados en la visión original, no
+      implementados todavía — no son parte del MVP mínimo).
 
 ### Decisión de alcance tomada durante la implementación
 
